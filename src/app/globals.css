@@ -74,3 +74,25 @@ body {
     opacity: 1;
   }
 }
+
+@keyframes countOut {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-36px) scale(0.75);
+    opacity: 0;
+  }
+}
+
+@keyframes countIn {
+  from {
+    transform: translateY(36px) scale(0.75);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}

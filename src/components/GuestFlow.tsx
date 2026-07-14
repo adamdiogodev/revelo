@@ -36,6 +36,7 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [challengesConcluidos, setChallengesConcluidos] = useState<string[]>([]);
   const [semPosesOpen, setSemPosesOpen] = useState(false);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const [codigo, setCodigo] = useState("");
   const [codigoError, setCodigoError] = useState(false);
   const [verificandoCodigo, setVerificandoCodigo] = useState(false);
@@ -65,6 +66,7 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
           setChallengesConcluidos(data.challengesConcluidos || []);
           setStep("camera");
           if (data.posesUsadas >= event.posesPorConvidado) setSemPosesOpen(true);
+          else setWelcomeOpen(true);
         })
         .catch(() => setStep("codigo"));
     } else {
@@ -154,6 +156,7 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
       setPosesUsadas(data.posesUsadas);
       setChallengesConcluidos(data.challengesConcluidos || []);
       setStep("camera");
+      setWelcomeOpen(true);
     } catch {
       setErrorMsg("Sem conexão. Tente de novo.");
       setStep("entry");
@@ -205,6 +208,23 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
               {event.totalFotos} foto{event.totalFotos === 1 ? "" : "s"} tiradas pelo grupo até
               agora
             </p>
+          </Modal>
+        )}
+        {welcomeOpen && !semPosesOpen && (
+          <Modal icon={<CameraIcon size={26} />}>
+            <p className="font-display text-xl italic text-ink">
+              Você tem {event.posesPorConvidado - posesUsadas} poses, {nome}!
+            </p>
+            <p className="mt-3 text-sm text-muted">
+              Não precisa tirar tudo de uma vez — pode fechar essa página e voltar quando quiser,
+              suas poses continuam salvas até a revelação.
+            </p>
+            <button
+              onClick={() => setWelcomeOpen(false)}
+              className="mt-5 w-full rounded-full bg-ink py-2.5 text-sm font-semibold text-bg"
+            >
+              Vamos lá!
+            </button>
           </Modal>
         )}
       </>

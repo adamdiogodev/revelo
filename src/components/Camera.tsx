@@ -65,6 +65,9 @@ export default function Camera({
   const [torchOn, setTorchOn] = useState(false);
   const [zoomLevels, setZoomLevels] = useState<{ min: number; max: number } | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [countEffect, setCountEffect] = useState<{ key: number; from: number; to: number } | null>(
+    null
+  );
 
   const msAteRevelacao = useCountdown(revealAt);
 
@@ -228,6 +231,10 @@ export default function Camera({
     setFlash(true);
     setTimeout(() => setFlash(false), 160);
 
+    const restantesAntes = posesPorConvidado - posesUsadasRef.current;
+    setCountEffect({ key: Date.now(), from: restantesAntes, to: restantesAntes - 1 });
+    setTimeout(() => setCountEffect(null), 900);
+
     setPosesUsadas((p) => Math.min(p + 1, posesPorConvidado));
 
     try {
@@ -263,6 +270,26 @@ export default function Camera({
       />
 
       {flash && <div className="absolute inset-0 bg-white animate-[fadeOut_160ms_ease-out]" />}
+
+      {countEffect && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+          <div className="relative h-28 w-28">
+            <span
+              key={`from-${countEffect.key}`}
+              className="absolute inset-0 flex items-center justify-center font-display text-8xl italic text-ink [text-shadow:0_2px_16px_rgba(0,0,0,0.7)] animate-[countOut_450ms_ease-in_forwards]"
+            >
+              {countEffect.from}
+            </span>
+            <span
+              key={`to-${countEffect.key}`}
+              className="absolute inset-0 flex items-center justify-center font-display text-8xl italic text-accent [text-shadow:0_2px_16px_rgba(0,0,0,0.7)] animate-[countIn_450ms_ease-out_both]"
+              style={{ animationDelay: "180ms" }}
+            >
+              {countEffect.to}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="absolute inset-x-0 top-0 flex flex-col items-center gap-0.5 pt-[max(1rem,env(safe-area-inset-top))] px-4 text-center">
         <p className="font-display text-lg italic text-ink/95 [text-shadow:0_1px_6px_rgba(0,0,0,0.6)]">
@@ -361,9 +388,11 @@ export default function Camera({
       )}
 
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-10 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
-        <div className="flex h-12 w-12 items-center justify-center gap-1 rounded-full bg-black/40 text-ink backdrop-blur">
-          <Film size={14} className="text-ink/60" />
-          <span className="font-display text-base italic tabular-nums">{posesRestantes}</span>
+        <div className="flex h-14 min-w-14 items-center justify-center gap-1.5 rounded-full bg-black/40 px-3 text-ink backdrop-blur">
+          <Film size={18} className="text-ink/60" />
+          <span className="font-display text-3xl italic tabular-nums leading-none">
+            {posesRestantes}
+          </span>
         </div>
 
         <button
@@ -375,7 +404,7 @@ export default function Camera({
           <span className="h-16 w-16 rounded-full bg-ink" />
         </button>
 
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/40 text-ink backdrop-blur">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-ink backdrop-blur">
           {pendingCount > 0 ? (
             <div className="flex flex-col items-center">
               <UploadCloud size={14} />

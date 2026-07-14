@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
-import { Check, Copy, Film, MessageCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { QRCodeCanvas } from "qrcode.react";
+import { Check, Copy, Download, Film, MessageCircle } from "lucide-react";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
 import RevealExperience from "@/components/RevealExperience";
 import type { PublicEventInfo } from "@/lib/types";
@@ -21,6 +21,7 @@ export default function HostDashboard({
   const [siteUrl, setSiteUrl] = useState(
     process.env.NEXT_PUBLIC_SITE_URL || ""
   );
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!siteUrl && typeof window !== "undefined") {
@@ -54,6 +55,15 @@ export default function HostDashboard({
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
+  function downloadQrCode() {
+    const canvas = qrCanvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement("a");
+    link.download = `qrcode-${event.slug}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
   if (event.fase === "revelada") {
     return <RevealExperience slug={event.slug} isHost />;
   }
@@ -78,30 +88,39 @@ export default function HostDashboard({
           <h1 className="mt-2 font-display text-3xl italic text-ink">{event.nome}</h1>
         </div>
 
-        {justCreated && (
-          <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 text-center">
-            <p className="mb-4 font-medium text-ink">Convide seus convidados</p>
-            <div className="flex justify-center rounded-xl bg-ink p-4">
-              <QRCodeSVG value={guestUrl} size={200} />
-            </div>
+        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 text-center">
+          <p className="mb-4 font-medium text-ink">
+            {justCreated ? "Convide seus convidados" : "QR code do evento"}
+          </p>
+          <div className="flex justify-center rounded-xl bg-ink p-4">
+            <QRCodeCanvas ref={qrCanvasRef} value={guestUrl} size={200} />
+          </div>
 
-            <div className="mt-4 flex items-center gap-2 rounded-lg bg-bg-raised px-3 py-2 text-sm">
-              <span className="flex-1 truncate text-left text-ink/80">{guestUrl}</span>
-              <button onClick={copyLink} className="flex items-center gap-1 font-medium text-accent">
-                {copied ? <Check size={14} /> : <Copy size={14} />}
-                {copied ? "copiado" : "copiar"}
-              </button>
-            </div>
-
-            <button
-              onClick={shareWhatsApp}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-2.5 font-semibold text-bg"
-            >
-              <MessageCircle size={16} />
-              Compartilhar no WhatsApp
+          <div className="mt-4 flex items-center gap-2 rounded-lg bg-bg-raised px-3 py-2 text-sm">
+            <span className="flex-1 truncate text-left text-ink/80">{guestUrl}</span>
+            <button onClick={copyLink} className="flex items-center gap-1 font-medium text-accent">
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? "copiado" : "copiar"}
             </button>
           </div>
-        )}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={shareWhatsApp}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-semibold text-bg"
+            >
+              <MessageCircle size={16} />
+              WhatsApp
+            </button>
+            <button
+              onClick={downloadQrCode}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-bg-raised py-2.5 text-sm font-semibold text-ink"
+            >
+              <Download size={16} />
+              Baixar QR
+            </button>
+          </div>
+        </div>
 
         <div className="rounded-2xl border border-ink/10 bg-bg-raised p-5 text-center">
           <p className="text-xs uppercase tracking-widest text-muted">Código de entrada</p>
