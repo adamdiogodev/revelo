@@ -10,7 +10,7 @@ type UploadResult =
   | { ok: false; reason: "sem_poses" | "revelacao_iniciada" | "network" | "erro" };
 
 type QueueItem = {
-  id: string;
+  id: string; 
   blob: Blob;
   challengeId: string | null;
   attempts: number;
