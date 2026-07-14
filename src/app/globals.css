@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+/*
+  Sempre escuro, de propósito — é uma câmera de festa, não um site.
+  Preto quente (não #000 puro) + branco quente + um único dourado fosco
+  como acento, em vez do amber/gradiente padrão do Tailwind.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg: #0b0b0a;
+  --color-bg-raised: #151412;
+  --color-ink: #f3efe6;
+  --color-muted: #9b9590;
+  --color-accent: #d3a75c;
+  --color-accent-ink: #17130c;
+  --color-danger: #d9695c;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--color-bg);
+  --color-bg-raised: var(--color-bg-raised);
+  --color-ink: var(--color-ink);
+  --color-muted: var(--color-muted);
+  --color-accent: var(--color-accent);
+  --color-accent-ink: var(--color-accent-ink);
+  --color-danger: var(--color-danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-fraunces);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
