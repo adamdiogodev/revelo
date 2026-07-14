@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Film, Minus, Plus, Users } from "lucide-react";
+import { ChevronLeft, Film, Users } from "lucide-react";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
+import { PRICING_TIERS, FREE_TIER, formatBRL, formatConvidados } from "@/lib/pricing";
 
 const NOME_SUGESTOES = ["Churrasco", "Aniversário", "Formatura", "Confraternização", "Despedida"];
 const POSES_OPCOES = [12, 18, 24];
-const MIN_CONVIDADOS = 50;
 
 function nextMidnightLocalInputValue() {
   const d = new Date();
@@ -35,7 +35,7 @@ export default function EventWizard() {
   const [nome, setNome] = useState("");
   const [revealAt, setRevealAt] = useState(nextMidnightLocalInputValue());
   const [poses, setPoses] = useState(12);
-  const [maxConvidados, setMaxConvidados] = useState(MIN_CONVIDADOS);
+  const [maxConvidados, setMaxConvidados] = useState(FREE_TIER.maxConvidados);
   const [modoDesafios, setModoDesafios] = useState(false);
   const [selectedPresets, setSelectedPresets] = useState<string[]>([]);
   const [customChallenges, setCustomChallenges] = useState<string[]>([]);
@@ -110,7 +110,11 @@ export default function EventWizard() {
       }
 
       const data = await res.json();
-      router.push(`/${data.slug}/host?created=1`);
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        router.push(`/${data.slug}/host?created=1`);
+      }
     } catch {
       setError("Sem conexão. Tente de novo.");
       setLoading(false);
@@ -220,29 +224,29 @@ export default function EventWizard() {
         {step === 3 && (
           <div className="mt-6 flex-1">
             <p className="text-sm text-muted">
-              Garante que cada convidado tenha suas poses reservadas. Dá pra aumentar depois.
+              Escolha o tamanho do seu evento. Dá pra fazer upgrade depois se precisar.
             </p>
-            <div className="mt-8 flex items-center justify-center gap-3 rounded-full bg-bg-raised px-6 py-4 text-ink">
-              <Users size={18} className="text-muted" />
-              <span className="font-display text-4xl italic tabular-nums">{maxConvidados}</span>
-              <span className="text-sm text-muted">convidados</span>
-            </div>
-            <div className="mt-6 flex items-center justify-center gap-4">
-              <button
-                onClick={() => setMaxConvidados((n) => Math.max(MIN_CONVIDADOS, n - 50))}
-                disabled={maxConvidados <= MIN_CONVIDADOS}
-                aria-label="Diminuir 50"
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/15 bg-bg-raised text-ink disabled:opacity-30"
-              >
-                <Minus size={18} />
-              </button>
-              <button
-                onClick={() => setMaxConvidados((n) => n + 50)}
-                aria-label="Aumentar 50"
-                className="flex h-12 w-12 items-center justify-center rounded-full border border-ink/15 bg-bg-raised text-ink"
-              >
-                <Plus size={18} />
-              </button>
+            <div className="mt-5 space-y-2">
+              {PRICING_TIERS.map((t) => {
+                const selected = maxConvidados === t.maxConvidados;
+                return (
+                  <button
+                    key={t.maxConvidados}
+                    onClick={() => setMaxConvidados(t.maxConvidados)}
+                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3.5 text-left ${
+                      selected ? "border-accent bg-accent/10" : "border-ink/15 bg-bg-raised"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2 text-ink">
+                      <Users size={16} className="text-muted" />
+                      {formatConvidados(t.maxConvidados)} convidados
+                    </span>
+                    <span className={`font-display italic ${selected ? "text-accent" : "text-ink/80"}`}>
+                      {formatBRL(t.precoCentavos)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -330,7 +334,12 @@ export default function EventWizard() {
               <Resumo label="Evento" value={nome} />
               <Resumo label="Revelação" value={new Date(revealAt).toLocaleString("pt-BR")} />
               <Resumo label="Poses" value={`${poses} por convidado`} />
-              <Resumo label="Convidados" value={`até ${maxConvidados}`} />
+              <Resumo
+                label="Convidados"
+                value={`até ${formatConvidados(maxConvidados)} (${formatBRL(
+                  PRICING_TIERS.find((t) => t.maxConvidados === maxConvidados)?.precoCentavos || 0
+                )})`}
+              />
               <Resumo
                 label="Desafios"
                 value={
@@ -350,7 +359,11 @@ export default function EventWizard() {
               disabled={loading}
               className="mt-6 w-full rounded-full bg-ink py-3.5 text-base font-semibold text-bg disabled:opacity-50"
             >
-              {loading ? "Criando…" : "Criar evento grátis"}
+              {loading
+                ? "Criando…"
+                : maxConvidados === FREE_TIER.maxConvidados
+                  ? "Criar evento grátis"
+                  : "Ir para pagamento"}
             </button>
           </div>
         )}

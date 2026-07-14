@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Zap, ZapOff, RefreshCw, Film, UploadCloud } from "lucide-react";
 import { captureFilteredJpeg } from "@/lib/photo-filter";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
+import { FILTER_PRESETS, DEFAULT_FILTER_ID, getFilterPreset, GRAIN_SVG_URL } from "@/lib/filter-presets";
 
 type UploadResult =
   | { ok: true; posesUsadas: number; posesPorConvidado: number }
@@ -68,6 +69,12 @@ export default function Camera({
   const [countEffect, setCountEffect] = useState<{ key: number; from: number; to: number } | null>(
     null
   );
+  const [filterId, setFilterId] = useState(DEFAULT_FILTER_ID);
+  const filterIdRef = useRef(filterId);
+  useEffect(() => {
+    filterIdRef.current = filterId;
+  }, [filterId]);
+  const activeFilter = getFilterPreset(filterId);
 
   const msAteRevelacao = useCountdown(revealAt);
 
@@ -238,7 +245,11 @@ export default function Camera({
     setPosesUsadas((p) => Math.min(p + 1, posesPorConvidado));
 
     try {
-      const blob = await captureFilteredJpeg(videoRef.current, facingMode === "user");
+      const blob = await captureFilteredJpeg(
+        videoRef.current,
+        facingMode === "user",
+        getFilterPreset(filterIdRef.current)
+      );
       queueRef.current.push({
         id: `${Date.now()}-${Math.random()}`,
         blob,
@@ -262,12 +273,26 @@ export default function Camera({
         playsInline
         muted
         className={`h-full w-full object-cover ${facingMode === "user" ? "scale-x-[-1]" : ""}`}
+        style={{ filter: activeFilter.cssFilter }}
       />
 
+      {/* vinheta + grão ao vivo, no mesmo tom do filtro escolhido — o que se vê aqui é bem
+          próximo do que vira a foto final, só sem "queimar" o timestamp ainda */}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ boxShadow: "inset 0 0 18vw 2vw rgba(0,0,0,0.55)" }}
+        style={{
+          boxShadow: `inset 0 0 18vw 2vw rgba(0,0,0,${Math.min(0.7, 0.55 * activeFilter.vignetteStrength)})`,
+        }}
       />
+      {activeFilter.grainOpacity > 0 && (
+        <div
+          className="pointer-events-none absolute inset-0 mix-blend-overlay"
+          style={{
+            backgroundImage: GRAIN_SVG_URL,
+            opacity: activeFilter.grainOpacity * 4,
+          }}
+        />
+      )}
 
       {flash && <div className="absolute inset-0 bg-white animate-[fadeOut_160ms_ease-out]" />}
 
@@ -301,6 +326,22 @@ export default function Camera({
         {statusMsg && (
           <div className="mt-2 rounded-full bg-black/40 px-3 py-1 text-xs text-ink/80">{statusMsg}</div>
         )}
+
+        <div className="mt-3 flex gap-2 overflow-x-auto px-2 [scrollbar-width:none]">
+          {FILTER_PRESETS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilterId(f.id)}
+              className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur ${
+                filterId === f.id
+                  ? "border-accent bg-accent text-accent-ink"
+                  : "border-ink/20 bg-black/40 text-ink"
+              }`}
+            >
+              {f.nome}
+            </button>
+          ))}
+        </div>
       </div>
 
       {cameraError && (

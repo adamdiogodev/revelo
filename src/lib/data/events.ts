@@ -41,7 +41,7 @@ export type CreateEventInput = {
 
 export async function createEvent(
   input: CreateEventInput
-): Promise<{ slug: string; codigoAcesso: string }> {
+): Promise<{ slug: string; codigoAcesso: string; eventId: string }> {
   const slug = await generateUniqueSlug(input.nome);
   const codigoAcesso = generateCodigoAcesso();
   const expiresAt = new Date(input.revealAt.getTime() + 24 * 60 * 60 * 1000);
@@ -77,7 +77,7 @@ export async function createEvent(
     if (challengesError) throw new Error(challengesError.message);
   }
 
-  return { slug: event.slug, codigoAcesso: event.codigo_acesso };
+  return { slug: event.slug, codigoAcesso: event.codigo_acesso, eventId: event.id };
 }
 
 export async function getEventRowBySlug(slug: string): Promise<EventRow | null> {
@@ -136,6 +136,15 @@ export async function getPublicEventBySlug(slug: string): Promise<PublicEventInf
     maxConvidados: event.max_convidados,
     fase: computeFase(event, now),
   };
+}
+
+export async function setEventMaxConvidados(eventId: string, maxConvidados: number): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from("events")
+    .update({ max_convidados: maxConvidados })
+    .eq("id", eventId);
+
+  if (error) throw new Error(error.message);
 }
 
 /** Evento + verificação de posse: só retorna algo se o evento pertencer a este anfitrião logado. */

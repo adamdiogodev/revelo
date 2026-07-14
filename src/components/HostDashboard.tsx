@@ -1,26 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { Check, Copy, Download, Film, MessageCircle } from "lucide-react";
+import { Check, Copy, Download, Film, MessageCircle, CreditCard } from "lucide-react";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
+import { formatBRL, formatConvidados } from "@/lib/pricing";
 import RevealExperience from "@/components/RevealExperience";
 import type { PublicEventInfo } from "@/lib/types";
+
+type PendingPayment = { maxConvidados: number; valorCentavos: number };
 
 export default function HostDashboard({
   event: initialEvent,
   codigoAcesso,
   justCreated,
+  pendingPayment,
+  pagoStatus,
 }: {
   event: PublicEventInfo;
   codigoAcesso: string;
   justCreated: boolean;
+  pendingPayment: PendingPayment | null;
+  pagoStatus?: string;
 }) {
+  const router = useRouter();
   const [event, setEvent] = useState(initialEvent);
   const [copied, setCopied] = useState(false);
   const [siteUrl, setSiteUrl] = useState(
     process.env.NEXT_PUBLIC_SITE_URL || ""
   );
+  const [payingLoading, setPayingLoading] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -38,6 +48,19 @@ export default function HostDashboard({
     }, 10000);
     return () => clearInterval(id);
   }, [event.slug]);
+
+  // Se voltou do Stripe com sucesso mas o webhook ainda não confirmou,
+  // fica atualizando a página por alguns segundos até liberar.
+  useEffect(() => {
+    if (pagoStatus !== "sucesso" || !pendingPayment) return;
+    let tentativas = 0;
+    const id = setInterval(() => {
+      tentativas += 1;
+      router.refresh();
+      if (tentativas >= 10) clearInterval(id);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [pagoStatus, pendingPayment, router]);
 
   const guestUrl = siteUrl ? `${siteUrl}/${event.slug}` : `/${event.slug}`;
 
@@ -64,6 +87,21 @@ export default function HostDashboard({
     link.click();
   }
 
+  async function handleFinalizarPagamento() {
+    setPayingLoading(true);
+    try {
+      const res = await fetch(`/api/events/${event.slug}/checkout`, { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        setPayingLoading(false);
+      }
+    } catch {
+      setPayingLoading(false);
+    }
+  }
+
   if (event.fase === "revelada") {
     return <RevealExperience slug={event.slug} isHost />;
   }
@@ -87,6 +125,30 @@ export default function HostDashboard({
           <p className="text-xs uppercase tracking-[0.2em] text-muted">painel do anfitrião</p>
           <h1 className="mt-2 font-display text-3xl italic text-ink">{event.nome}</h1>
         </div>
+
+        {pendingPayment && (
+          <div className="rounded-2xl border border-danger/40 bg-danger/10 p-5 text-center">
+            <p className="font-medium text-ink">
+              {pagoStatus === "sucesso" ? "Confirmando seu pagamento…" : "Pagamento pendente"}
+            </p>
+            <p className="mt-1 text-sm text-muted">
+              Plano de até {formatConvidados(pendingPayment.maxConvidados)} convidados —{" "}
+              {formatBRL(pendingPayment.valorCentavos)}
+            </p>
+            {pagoStatus === "sucesso" ? (
+              <p className="mt-3 text-xs text-muted">Isso costuma levar só alguns segundos.</p>
+            ) : (
+              <button
+                onClick={handleFinalizarPagamento}
+                disabled={payingLoading}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-50"
+              >
+                <CreditCard size={16} />
+                {payingLoading ? "Abrindo pagamento…" : "Finalizar pagamento"}
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 text-center">
           <p className="mb-4 font-medium text-ink">
@@ -151,7 +213,7 @@ export default function HostDashboard({
             <div className="rounded-xl bg-bg p-3">
               <p className="font-display text-2xl italic">
                 {event.totalConvidados}
-                <span className="text-base text-muted">/{event.maxConvidados}</span>
+                <span className="text-base text-muted">/{formatConvidados(event.maxConvidados)}</span>
               </p>
               <p className="text-xs text-muted">convidados</p>
             </div>

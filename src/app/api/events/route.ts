@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createEvent } from "@/lib/data/events";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
+import { FREE_TIER, getTierByMaxConvidados } from "@/lib/pricing";
+import { createTierCheckoutSession } from "@/lib/stripe";
+import { createPendingPayment } from "@/lib/data/payments";
 
 const VALID_POSES = [12, 18, 24];
-const MIN_CONVIDADOS = 50;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -59,11 +61,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Poses por convidado inválido." }, { status: 400 });
   }
 
-  if (!maxConvidados || maxConvidados < MIN_CONVIDADOS || maxConvidados % 50 !== 0) {
-    return NextResponse.json(
-      { error: "Máximo de convidados precisa ser um múltiplo de 50." },
-      { status: 400 }
-    );
+  const tier = getTierByMaxConvidados(maxConvidados ?? -1);
+  if (!tier) {
+    return NextResponse.json({ error: "Plano de convidados inválido." }, { status: 400 });
   }
 
   let finalChallenges: { titulo: string; emoji: string }[] = [];
@@ -76,17 +76,41 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { slug, codigoAcesso } = await createEvent({
+    // O evento sempre nasce no plano grátis — o limite de convidados só sobe
+    // depois que o pagamento é confirmado pelo webhook do Stripe. Nunca
+    // confiamos no plano escolhido pelo cliente para liberar acesso na hora.
+    const { slug, codigoAcesso, eventId } = await createEvent({
       hostUserId: user.id,
       nome: nome.trim().slice(0, 80),
       revealAt: revealDate,
       posesPorConvidado,
-      maxConvidados,
+      maxConvidados: FREE_TIER.maxConvidados,
       modoDesafios: Boolean(modoDesafios),
       challenges: finalChallenges,
     });
 
-    return NextResponse.json({ slug, codigoAcesso });
+    if (tier.precoCentavos === 0) {
+      return NextResponse.json({ slug, codigoAcesso });
+    }
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
+    const session = await createTierCheckoutSession({
+      siteUrl,
+      slug,
+      eventId,
+      eventNome: nome.trim(),
+      maxConvidados: tier.maxConvidados,
+      precoCentavos: tier.precoCentavos,
+    });
+
+    await createPendingPayment({
+      eventId,
+      maxConvidados: tier.maxConvidados,
+      valorCentavos: tier.precoCentavos,
+      stripeSessionId: session.id,
+    });
+
+    return NextResponse.json({ slug, codigoAcesso, checkoutUrl: session.url });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Falha ao criar o evento. Tente novamente." }, { status: 500 });

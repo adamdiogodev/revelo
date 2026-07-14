@@ -1,7 +1,11 @@
+import { FilterPreset } from "@/lib/filter-presets";
+
 const MAX_SIDE = 1600;
 const JPEG_QUALITY = 0.8;
 
-function applyGrain(ctx: CanvasRenderingContext2D, w: number, h: number) {
+function applyGrain(ctx: CanvasRenderingContext2D, w: number, h: number, opacity: number) {
+  if (opacity <= 0) return;
+
   const tileSize = 128;
   const tile = document.createElement("canvas");
   tile.width = tileSize;
@@ -23,14 +27,16 @@ function applyGrain(ctx: CanvasRenderingContext2D, w: number, h: number) {
   if (!pattern) return;
 
   ctx.save();
-  ctx.globalAlpha = 0.06;
+  ctx.globalAlpha = opacity;
   ctx.globalCompositeOperation = "overlay";
   ctx.fillStyle = pattern;
   ctx.fillRect(0, 0, w, h);
   ctx.restore();
 }
 
-function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number) {
+function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number, strength: number) {
+  if (strength <= 0) return;
+
   const grad = ctx.createRadialGradient(
     w / 2,
     h / 2,
@@ -40,7 +46,7 @@ function drawVignette(ctx: CanvasRenderingContext2D, w: number, h: number) {
     Math.max(w, h) * 0.72
   );
   grad.addColorStop(0, "rgba(0,0,0,0)");
-  grad.addColorStop(1, "rgba(0,0,0,0.45)");
+  grad.addColorStop(1, `rgba(0,0,0,${Math.min(0.6, 0.45 * strength)})`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 }
@@ -67,12 +73,16 @@ function drawTimestamp(ctx: CanvasRenderingContext2D, w: number, h: number) {
 }
 
 /**
- * Captura o frame atual do vídeo, aplica o filtro analógico fixo
- * (dessaturação leve, vinheta, grão e timestamp) e retorna um JPEG
- * comprimido pronto para upload — tudo isso antes de qualquer envio,
- * já que ninguém (nem o autor) pode ver a foto crua.
+ * Captura o frame atual do vídeo aplicando o filtro escolhido (o mesmo
+ * exibido ao vivo no viewfinder) e retorna um JPEG comprimido pronto para
+ * upload — tudo isso antes de qualquer envio, já que ninguém (nem o autor)
+ * pode ver a foto crua.
  */
-export function captureFilteredJpeg(video: HTMLVideoElement, mirror: boolean): Promise<Blob> {
+export function captureFilteredJpeg(
+  video: HTMLVideoElement,
+  mirror: boolean,
+  preset: FilterPreset
+): Promise<Blob> {
   const vw = video.videoWidth;
   const vh = video.videoHeight;
 
@@ -95,13 +105,13 @@ export function captureFilteredJpeg(video: HTMLVideoElement, mirror: boolean): P
     ctx.translate(outW, 0);
     ctx.scale(-1, 1);
   }
-  ctx.filter = "saturate(65%) contrast(108%) brightness(103%) sepia(8%)";
+  ctx.filter = preset.cssFilter;
   ctx.drawImage(video, 0, 0, outW, outH);
   ctx.restore();
   ctx.filter = "none";
 
-  drawVignette(ctx, outW, outH);
-  applyGrain(ctx, outW, outH);
+  drawVignette(ctx, outW, outH, preset.vignetteStrength);
+  applyGrain(ctx, outW, outH, preset.grainOpacity);
   drawTimestamp(ctx, outW, outH);
 
   return new Promise((resolve, reject) => {
