@@ -2,6 +2,9 @@
   "name": "foto-app",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +13,7 @@
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.1",
-    "@supabase/supabase-js": "^2.109.0",
+    "@supabase/supabase-js": "^2.110.3",
     "jszip": "^3.10.1",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
