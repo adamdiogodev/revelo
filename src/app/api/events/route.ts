@@ -3,8 +3,8 @@ import { createEvent } from "@/lib/data/events";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
 import { FREE_TIER, getTierByMaxConvidados } from "@/lib/pricing";
-import { createTierCheckoutSession } from "@/lib/stripe";
-import { createPendingPayment } from "@/lib/data/payments";
+import { createTierPreference } from "@/lib/mercadopago";
+import { createPendingPayment, setPaymentPreference } from "@/lib/data/payments";
 
 const VALID_POSES = [12, 18, 24];
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // O evento sempre nasce no plano grátis — o limite de convidados só sobe
-    // depois que o pagamento é confirmado pelo webhook do Stripe. Nunca
+    // depois que o pagamento é confirmado pelo webhook do Mercado Pago. Nunca
     // confiamos no plano escolhido pelo cliente para liberar acesso na hora.
     const { slug, codigoAcesso, eventId } = await createEvent({
       hostUserId: user.id,
@@ -93,24 +93,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ slug, codigoAcesso });
     }
 
+    const payment = await createPendingPayment({
+      eventId,
+      maxConvidados: tier.maxConvidados,
+      valorCentavos: tier.precoCentavos,
+    });
+
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
-    const session = await createTierCheckoutSession({
+    const preference = await createTierPreference({
       siteUrl,
       slug,
-      eventId,
+      paymentId: payment.id,
       eventNome: nome.trim(),
       maxConvidados: tier.maxConvidados,
       precoCentavos: tier.precoCentavos,
     });
 
-    await createPendingPayment({
-      eventId,
-      maxConvidados: tier.maxConvidados,
-      valorCentavos: tier.precoCentavos,
-      stripeSessionId: session.id,
-    });
+    await setPaymentPreference(payment.id, preference.id!);
 
-    return NextResponse.json({ slug, codigoAcesso, checkoutUrl: session.url });
+    return NextResponse.json({ slug, codigoAcesso, checkoutUrl: preference.init_point });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Falha ao criar o evento. Tente novamente." }, { status: 500 });

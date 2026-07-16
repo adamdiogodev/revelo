@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEventForHost } from "@/lib/data/events";
-import { getLatestPaymentForEvent, updatePaymentStripeSession } from "@/lib/data/payments";
-import { createTierCheckoutSession } from "@/lib/stripe";
+import { getLatestPaymentForEvent, setPaymentPreference } from "@/lib/data/payments";
+import { createTierPreference } from "@/lib/mercadopago";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -29,16 +29,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
-  const session = await createTierCheckoutSession({
+  const preference = await createTierPreference({
     siteUrl,
     slug,
-    eventId: event.id,
+    paymentId: payment.id,
     eventNome: event.nome,
     maxConvidados: payment.max_convidados,
     precoCentavos: payment.valor_centavos,
   });
 
-  await updatePaymentStripeSession(payment.id, session.id);
+  await setPaymentPreference(payment.id, preference.id!);
 
-  return NextResponse.json({ checkoutUrl: session.url });
+  return NextResponse.json({ checkoutUrl: preference.init_point });
 }

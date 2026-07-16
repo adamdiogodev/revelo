@@ -7,8 +7,8 @@ export type PaymentRow = {
   max_convidados: number;
   valor_centavos: number;
   status: "pendente" | "pago" | "cortesia" | "cancelado";
-  stripe_session_id: string | null;
-  stripe_payment_intent_id: string | null;
+  mp_preference_id: string | null;
+  mp_payment_id: string | null;
   created_at: string;
   paid_at: string | null;
 };
@@ -17,7 +17,6 @@ export async function createPendingPayment(params: {
   eventId: string;
   maxConvidados: number;
   valorCentavos: number;
-  stripeSessionId: string;
 }): Promise<PaymentRow> {
   const { data, error } = await supabaseAdmin
     .from("payments")
@@ -26,13 +25,21 @@ export async function createPendingPayment(params: {
       max_convidados: params.maxConvidados,
       valor_centavos: params.valorCentavos,
       status: "pendente",
-      stripe_session_id: params.stripeSessionId,
     })
     .select("*")
     .single();
 
   if (error || !data) throw new Error(error?.message || "Falha ao registrar pagamento.");
   return data as PaymentRow;
+}
+
+export async function setPaymentPreference(paymentId: string, preferenceId: string) {
+  const { error } = await supabaseAdmin
+    .from("payments")
+    .update({ mp_preference_id: preferenceId })
+    .eq("id", paymentId);
+
+  if (error) throw new Error(error.message);
 }
 
 export async function getLatestPaymentForEvent(eventId: string): Promise<PaymentRow | null> {
@@ -48,32 +55,23 @@ export async function getLatestPaymentForEvent(eventId: string): Promise<Payment
   return data as PaymentRow | null;
 }
 
-export async function getPaymentByStripeSessionId(sessionId: string): Promise<PaymentRow | null> {
+export async function getPaymentById(paymentId: string): Promise<PaymentRow | null> {
   const { data, error } = await supabaseAdmin
     .from("payments")
     .select("*")
-    .eq("stripe_session_id", sessionId)
+    .eq("id", paymentId)
     .maybeSingle();
 
   if (error) throw new Error(error.message);
   return data as PaymentRow | null;
 }
 
-export async function markPaymentPaid(paymentId: string, paymentIntentId: string | null) {
+export async function markPaymentPaid(paymentId: string, mpPaymentId: string | null) {
   const { error } = await supabaseAdmin
     .from("payments")
-    .update({ status: "pago", paid_at: new Date().toISOString(), stripe_payment_intent_id: paymentIntentId })
+    .update({ status: "pago", paid_at: new Date().toISOString(), mp_payment_id: mpPaymentId })
     .eq("id", paymentId)
     .eq("status", "pendente");
-
-  if (error) throw new Error(error.message);
-}
-
-export async function updatePaymentStripeSession(paymentId: string, stripeSessionId: string) {
-  const { error } = await supabaseAdmin
-    .from("payments")
-    .update({ stripe_session_id: stripeSessionId })
-    .eq("id", paymentId);
 
   if (error) throw new Error(error.message);
 }
