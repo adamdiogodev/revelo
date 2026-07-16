@@ -32,6 +32,12 @@ export async function POST(req: NextRequest) {
 
   // Sempre confirma lendo o pagamento na API do Mercado Pago (nunca confia
   // só no corpo da notificação) antes de liberar qualquer coisa.
+  //
+  // Importante: sempre respondemos 200 pro Mercado Pago aqui, mesmo quando o
+  // pagamento não é reconhecido (ex.: o teste de webhook do próprio painel
+  // manda um data.id fictício) — um erro HTTP faria o Mercado Pago achar que
+  // o endpoint está quebrado e parar de reentregar notificações de verdade.
+  // Qualquer problema real fica só no log do servidor.
   if (type === "payment" && dataId) {
     try {
       const mpPayment = await getPayment(dataId);
@@ -45,8 +51,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (err) {
-      console.error("Erro processando webhook do Mercado Pago:", err);
-      return NextResponse.json({ error: "Erro interno." }, { status: 500 });
+      console.error("Erro processando webhook do Mercado Pago (data.id:", dataId, "):", err);
     }
   }
 
