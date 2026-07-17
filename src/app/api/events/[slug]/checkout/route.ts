@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEventForHost } from "@/lib/data/events";
-import { getLatestPaymentForEvent, setPaymentPreference } from "@/lib/data/payments";
-import { createTierPreference } from "@/lib/mercadopago";
+import { getLatestPaymentForEvent, setPaymentProviderRef } from "@/lib/data/payments";
+import { createCheckout } from "@/lib/payment-provider";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -28,8 +28,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     return NextResponse.json({ error: "Não há pagamento pendente para este evento." }, { status: 400 });
   }
 
+  // Retoma com o MESMO provedor com que o pagamento nasceu, não o que
+  // estiver ativo agora — evita misturar gateway no meio de uma cobrança.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
-  const preference = await createTierPreference({
+  const checkout = await createCheckout({
+    provider: payment.provider,
     siteUrl,
     slug,
     paymentId: payment.id,
@@ -38,7 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     precoCentavos: payment.valor_centavos,
   });
 
-  await setPaymentPreference(payment.id, preference.id!);
+  await setPaymentProviderRef(payment.id, payment.provider, checkout.providerRef);
 
-  return NextResponse.json({ checkoutUrl: preference.init_point });
+  return NextResponse.json({ checkoutUrl: checkout.checkoutUrl });
 }

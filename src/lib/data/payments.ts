@@ -1,14 +1,19 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
+export type PaymentProvider = "stripe" | "mercadopago";
+
 export type PaymentRow = {
   id: string;
   event_id: string;
   max_convidados: number;
   valor_centavos: number;
   status: "pendente" | "pago" | "cortesia" | "cancelado";
+  provider: PaymentProvider;
   mp_preference_id: string | null;
   mp_payment_id: string | null;
+  stripe_session_id: string | null;
+  stripe_payment_intent_id: string | null;
   created_at: string;
   paid_at: string | null;
 };
@@ -17,6 +22,7 @@ export async function createPendingPayment(params: {
   eventId: string;
   maxConvidados: number;
   valorCentavos: number;
+  provider: PaymentProvider;
 }): Promise<PaymentRow> {
   const { data, error } = await supabaseAdmin
     .from("payments")
@@ -25,6 +31,7 @@ export async function createPendingPayment(params: {
       max_convidados: params.maxConvidados,
       valor_centavos: params.valorCentavos,
       status: "pendente",
+      provider: params.provider,
     })
     .select("*")
     .single();
@@ -33,10 +40,16 @@ export async function createPendingPayment(params: {
   return data as PaymentRow;
 }
 
-export async function setPaymentPreference(paymentId: string, preferenceId: string) {
+/** Guarda a referência do gateway (session id do Stripe ou preference id do Mercado Pago). */
+export async function setPaymentProviderRef(
+  paymentId: string,
+  provider: PaymentProvider,
+  ref: string
+) {
+  const column = provider === "stripe" ? "stripe_session_id" : "mp_preference_id";
   const { error } = await supabaseAdmin
     .from("payments")
-    .update({ mp_preference_id: preferenceId })
+    .update({ [column]: ref })
     .eq("id", paymentId);
 
   if (error) throw new Error(error.message);
@@ -66,10 +79,14 @@ export async function getPaymentById(paymentId: string): Promise<PaymentRow | nu
   return data as PaymentRow | null;
 }
 
-export async function markPaymentPaid(paymentId: string, mpPaymentId: string | null) {
+export async function markPaymentPaid(paymentId: string, providerPaymentRef: string | null) {
+  const payment = await getPaymentById(paymentId);
+  if (!payment) return;
+
+  const column = payment.provider === "stripe" ? "stripe_payment_intent_id" : "mp_payment_id";
   const { error } = await supabaseAdmin
     .from("payments")
-    .update({ status: "pago", paid_at: new Date().toISOString(), mp_payment_id: mpPaymentId })
+    .update({ status: "pago", paid_at: new Date().toISOString(), [column]: providerPaymentRef })
     .eq("id", paymentId)
     .eq("status", "pendente");
 
