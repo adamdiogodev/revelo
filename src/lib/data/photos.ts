@@ -19,6 +19,34 @@ async function decrementGuestPose(guestId: string) {
   await supabaseAdmin.rpc("decrement_guest_pose", { p_guest_id: guestId });
 }
 
+/** Baixa os bytes de um conjunto de fotos do evento, na ordem em que foram tiradas. */
+export async function downloadPhotosByIds(
+  eventId: string,
+  photoIds: string[]
+): Promise<Buffer[]> {
+  const { data: rows, error } = await supabaseAdmin
+    .from("photos")
+    .select("id, storage_path, taken_at")
+    .eq("event_id", eventId)
+    .in("id", photoIds)
+    .order("taken_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  if (!rows || rows.length === 0) return [];
+
+  const buffers = await Promise.all(
+    rows.map(async (row) => {
+      const { data, error: downloadError } = await supabaseAdmin.storage
+        .from(PHOTOS_BUCKET)
+        .download(row.storage_path);
+      if (downloadError || !data) return null;
+      return Buffer.from(await data.arrayBuffer());
+    })
+  );
+
+  return buffers.filter((b) => b !== null);
+}
+
 export async function deletePhoto(eventId: string, photoId: string): Promise<boolean> {
   const { data: photo, error } = await supabaseAdmin
     .from("photos")

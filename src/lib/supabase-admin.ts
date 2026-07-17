@@ -19,3 +19,4 @@ export const supabaseAdmin = createClient(url, serviceKey, {
 });
 
 export const PHOTOS_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "photos";
+export const COVERS_BUCKET = "covers";

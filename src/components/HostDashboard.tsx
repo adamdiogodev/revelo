@@ -7,6 +7,7 @@ import { Check, Copy, Download, Film, MessageCircle, CreditCard } from "lucide-r
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
 import { formatBRL, formatConvidados } from "@/lib/pricing";
 import RevealExperience from "@/components/RevealExperience";
+import CoverBackground from "@/components/CoverBackground";
 import type { PublicEventInfo } from "@/lib/types";
 
 type PendingPayment = { maxConvidados: number; valorCentavos: number };
@@ -119,8 +120,9 @@ export default function HostDashboard({
   }
 
   return (
-    <div className="min-h-dvh bg-bg px-6 py-10 text-ink">
-      <div className="mx-auto max-w-md space-y-8">
+    <div className="relative min-h-dvh px-6 py-10 text-ink">
+      <CoverBackground url={event.capaUrl} />
+      <div className="relative z-10 mx-auto max-w-md space-y-8">
         <div className="text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-muted">painel do anfitrião</p>
           <h1 className="mt-2 font-display text-3xl italic text-ink">{event.nome}</h1>

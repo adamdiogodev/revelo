@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
     maxConvidados,
     modoDesafios,
     challenges,
+    capaUrl,
   } = body as {
     nome?: string;
     revealAt?: string;
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
     maxConvidados?: number;
     modoDesafios?: boolean;
     challenges?: { titulo: string; emoji?: string }[];
+    capaUrl?: string;
   };
 
   if (!nome || typeof nome !== "string" || !nome.trim()) {
@@ -66,6 +68,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Plano de convidados inválido." }, { status: 400 });
   }
 
+  let finalCapaUrl: string | null = null;
+  if (capaUrl && typeof capaUrl === "string") {
+    const isPreset = capaUrl.startsWith("/covers/");
+    const isUploaded = capaUrl.startsWith(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/covers/`
+    );
+    if (isPreset || isUploaded) finalCapaUrl = capaUrl;
+  }
+
   let finalChallenges: { titulo: string; emoji: string }[] = [];
   if (modoDesafios) {
     const custom = (challenges || [])
@@ -87,6 +98,7 @@ export async function POST(req: NextRequest) {
       maxConvidados: FREE_TIER.maxConvidados,
       modoDesafios: Boolean(modoDesafios),
       challenges: finalChallenges,
+      capaUrl: finalCapaUrl,
     });
 
     if (tier.precoCentavos === 0) {

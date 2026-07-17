@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { X, Download, Trash2 } from "lucide-react";
+import { X, Download, Trash2, Clapperboard, Check } from "lucide-react";
 import type { RevealPhoto } from "@/lib/types";
+
+const MAX_VIDEO_PHOTOS = 10;
 
 export default function PhotoGrid({
   photos,
@@ -22,6 +24,11 @@ export default function PhotoGrid({
   const [filterChallenge, setFilterChallenge] = useState("");
   const [openPhoto, setOpenPhoto] = useState<RevealPhoto | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return localPhotos.filter((p) => {
@@ -44,6 +51,52 @@ export default function PhotoGrid({
       }
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function toggleSelectMode() {
+    setSelectMode((v) => !v);
+    setSelectedIds([]);
+    setVideoError(null);
+  }
+
+  function toggleSelected(photoId: string) {
+    setSelectedIds((prev) => {
+      if (prev.includes(photoId)) return prev.filter((id) => id !== photoId);
+      if (prev.length >= MAX_VIDEO_PHOTOS) return prev;
+      return [...prev, photoId];
+    });
+  }
+
+  async function handleGenerateVideo() {
+    setVideoLoading(true);
+    setVideoError(null);
+    try {
+      const res = await fetch(`/api/events/${slug}/video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoIds: selectedIds }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Falha ao gerar o vídeo." }));
+        setVideoError(data.error || "Falha ao gerar o vídeo.");
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${slug}-video.mp4`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setSelectMode(false);
+      setSelectedIds([]);
+    } catch {
+      setVideoError("Sem conexão. Tente de novo.");
+    } finally {
+      setVideoLoading(false);
     }
   }
 
@@ -79,24 +132,69 @@ export default function PhotoGrid({
             ))}
           </select>
         )}
+
+        <button
+          onClick={toggleSelectMode}
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
+            selectMode ? "border-accent bg-accent text-accent-ink" : "border-ink/15 bg-bg-raised text-ink"
+          }`}
+        >
+          <Clapperboard size={14} />
+          {selectMode ? "Cancelar" : "Criar vídeo"}
+        </button>
       </div>
 
+      {selectMode && (
+        <p className="mt-3 text-center text-xs text-muted">
+          Toque em até {MAX_VIDEO_PHOTOS} fotos para montar um vídeo pra postar no Instagram.
+        </p>
+      )}
+
       <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-        {filtered.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => setOpenPhoto(p)}
-            className="aspect-square overflow-hidden rounded-lg bg-bg-raised"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.viewUrl} alt={`Foto de ${p.guestNome}`} className="h-full w-full object-cover" />
-          </button>
-        ))}
+        {filtered.map((p) => {
+          const selected = selectedIds.includes(p.id);
+          return (
+            <button
+              key={p.id}
+              onClick={() => (selectMode ? toggleSelected(p.id) : setOpenPhoto(p))}
+              className="relative aspect-square overflow-hidden rounded-lg bg-bg-raised"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.viewUrl} alt={`Foto de ${p.guestNome}`} className="h-full w-full object-cover" />
+              {selectMode && (
+                <span
+                  className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                    selected ? "border-accent bg-accent text-accent-ink" : "border-ink/60 bg-black/30"
+                  }`}
+                >
+                  {selected && <Check size={14} />}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {filtered.length === 0 && (
         <p className="mt-8 text-center text-muted">Nenhuma foto encontrada com esse filtro.</p>
       )}
+
+      {selectMode && selectedIds.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-3 border-t border-ink/10 bg-bg/95 p-4 backdrop-blur">
+          <span className="text-sm text-muted">
+            {selectedIds.length}/{MAX_VIDEO_PHOTOS} selecionadas
+          </span>
+          <button
+            onClick={handleGenerateVideo}
+            disabled={videoLoading}
+            className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg disabled:opacity-50"
+          >
+            <Clapperboard size={16} />
+            {videoLoading ? "Gerando vídeo…" : "Gerar vídeo"}
+          </button>
+        </div>
+      )}
+      {videoError && <p className="mt-4 text-center text-sm text-danger">{videoError}</p>}
 
       {openPhoto && (
         <div

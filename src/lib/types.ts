@@ -11,6 +11,7 @@ export type EventRow = {
   max_convidados: number;
   created_at: string;
   expires_at: string;
+  capa_url: string | null;
 };
 
 export type ChallengeRow = {
@@ -61,6 +62,7 @@ export type RevealPayload = {
   nome: string;
   revealAt: string;
   expiresAt: string;
+  capaUrl: string | null;
   freePhotos: RevealPhoto[];
   chapters: RevealChapter[];
   allPhotos: RevealPhoto[];
@@ -79,6 +81,7 @@ export type PublicEventInfo = {
   totalFotos: number;
   totalConvidados: number;
   maxConvidados: number;
+  capaUrl: string | null;
   fase: "captura" | "revelada" | "expirada";
 };
 
@@ -91,5 +94,6 @@ export type HostEventSummary = {
   totalFotos: number;
   totalConvidados: number;
   maxConvidados: number;
+  capaUrl: string | null;
   fase: "captura" | "revelada" | "expirada";
 };

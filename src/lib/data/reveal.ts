@@ -33,6 +33,7 @@ export async function getRevealPayload(slug: string): Promise<RevealPayload | nu
     nome: event.nome,
     revealAt: event.reveal_at,
     expiresAt: event.expires_at,
+    capaUrl: event.capa_url,
   };
 
   if (fase !== "revelada") {

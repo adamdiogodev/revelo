@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Film, Download, AlertTriangle, Play } from "lucide-react";
 import Slideshow from "@/components/Slideshow";
 import PhotoGrid from "@/components/PhotoGrid";
+import CoverBackground from "@/components/CoverBackground";
 import { useCountdown } from "@/lib/use-countdown";
 import type { RevealPayload } from "@/lib/types";
 
@@ -78,19 +79,22 @@ export default function RevealExperience({
 
   if (stage === "intro") {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-5 bg-bg text-ink">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-bg-raised text-accent animate-[spin-slow_2.5s_linear_infinite]">
+      <div className="relative flex h-dvh flex-col items-center justify-center gap-5 text-ink">
+        <CoverBackground url={payload.capaUrl} />
+        <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-bg-raised text-accent animate-[spin-slow_2.5s_linear_infinite]">
           <Film size={26} />
         </div>
-        <p className="font-display text-2xl italic">Revelando o filme…</p>
+        <p className="relative z-10 font-display text-2xl italic">Revelando o filme…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="relative min-h-dvh bg-bg">
       {stage === "slideshow" && (
         <Slideshow
+          eventNome={payload.nome}
+          capaUrl={payload.capaUrl}
           freePhotos={payload.freePhotos}
           chapters={payload.chapters}
           onFinish={handleSlideshowFinish}
@@ -99,32 +103,35 @@ export default function RevealExperience({
 
       {stage === "grid" && (
         <>
-          <div className="flex flex-wrap items-center justify-center gap-3 py-4">
-            <button
-              onClick={() => setStage("slideshow")}
-              className="flex items-center gap-2 rounded-full bg-bg-raised px-5 py-2.5 text-sm font-semibold text-ink"
-            >
-              <Play size={16} />
-              Ver slideshow
-            </button>
-            {isHost && (
-              <a
-                href={`/api/events/${slug}/zip`}
-                className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg"
+          <CoverBackground url={payload.capaUrl} />
+          <div className="relative z-10">
+            <div className="flex flex-wrap items-center justify-center gap-3 py-4">
+              <button
+                onClick={() => setStage("slideshow")}
+                className="flex items-center gap-2 rounded-full bg-bg-raised px-5 py-2.5 text-sm font-semibold text-ink"
               >
-                <Download size={16} />
-                Baixar álbum completo (.zip)
-              </a>
-            )}
+                <Play size={16} />
+                Ver slideshow
+              </button>
+              {isHost && (
+                <a
+                  href={`/api/events/${slug}/zip`}
+                  className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg"
+                >
+                  <Download size={16} />
+                  Baixar álbum completo (.zip)
+                </a>
+              )}
+            </div>
+            <PhotoGrid
+              photos={payload.allPhotos}
+              guestNames={payload.guestNames}
+              challengeTitles={Array.from(new Set(payload.chapters.map((c) => c.titulo)))}
+              slug={slug}
+              isHost={isHost}
+            />
+            <div className="h-16" />
           </div>
-          <PhotoGrid
-            photos={payload.allPhotos}
-            guestNames={payload.guestNames}
-            challengeTitles={Array.from(new Set(payload.chapters.map((c) => c.titulo)))}
-            slug={slug}
-            isHost={isHost}
-          />
-          <div className="h-16" />
         </>
       )}
     </div>

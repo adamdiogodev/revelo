@@ -37,6 +37,7 @@ export type CreateEventInput = {
   maxConvidados: number;
   modoDesafios: boolean;
   challenges: { titulo: string; emoji: string }[];
+  capaUrl?: string | null;
 };
 
 export async function createEvent(
@@ -58,6 +59,7 @@ export async function createEvent(
       max_convidados: input.maxConvidados,
       modo_desafios: input.modoDesafios,
       expires_at: expiresAt.toISOString(),
+      capa_url: input.capaUrl || null,
     })
     .select("id, slug, codigo_acesso")
     .single();
@@ -134,6 +136,7 @@ export async function getPublicEventBySlug(slug: string): Promise<PublicEventInf
     totalFotos: totalFotos || 0,
     totalConvidados: totalConvidados || 0,
     maxConvidados: event.max_convidados,
+    capaUrl: event.capa_url,
     fase: computeFase(event, now),
   };
 }
@@ -194,6 +197,7 @@ export async function getEventsByHostUser(hostUserId: string): Promise<HostEvent
         totalFotos: totalFotos || 0,
         totalConvidados: totalConvidados || 0,
         maxConvidados: event.max_convidados,
+        capaUrl: event.capa_url,
         fase: computeFase(event, now),
       } satisfies HostEventSummary;
     })

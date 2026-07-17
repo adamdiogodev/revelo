@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Film, Users } from "lucide-react";
+import { ChevronLeft, Film, Users, Upload, Check } from "lucide-react";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
 import { PRICING_TIERS, FREE_TIER, formatBRL, formatConvidados } from "@/lib/pricing";
 
 const NOME_SUGESTOES = ["Churrasco", "Aniversário", "Formatura", "Confraternização", "Despedida"];
 const POSES_OPCOES = [12, 18, 24];
+const COVER_PRESETS = [
+  { id: "preset-dourado", url: "/covers/preset-dourado.jpg" },
+  { id: "preset-vinho", url: "/covers/preset-vinho.jpg" },
+  { id: "preset-verde", url: "/covers/preset-verde.jpg" },
+  { id: "preset-azul", url: "/covers/preset-azul.jpg" },
+];
 
 function nextMidnightLocalInputValue() {
   const d = new Date();
@@ -21,6 +27,7 @@ function nextMidnightLocalInputValue() {
 
 const STEP_TITLES = [
   "Qual é o nome do seu evento?",
+  "Escolha uma capa",
   "Quando vai rolar a revelação?",
   "Quantas poses por convidado?",
   "Quantos convidados no máximo?",
@@ -33,6 +40,10 @@ export default function EventWizard() {
   const [step, setStep] = useState(0);
 
   const [nome, setNome] = useState("");
+  const [capaUrl, setCapaUrl] = useState<string | null>(null);
+  const [capaUploading, setCapaUploading] = useState(false);
+  const [capaError, setCapaError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [revealAt, setRevealAt] = useState(nextMidnightLocalInputValue());
   const [poses, setPoses] = useState(12);
   const [maxConvidados, setMaxConvidados] = useState(FREE_TIER.maxConvidados);
@@ -51,7 +62,7 @@ export default function EventWizard() {
       setError("Dá um nome para o evento.");
       return;
     }
-    if (step === 1) {
+    if (step === 2) {
       const d = new Date(revealAt);
       if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) {
         setError("Escolha um horário de revelação no futuro.");
@@ -79,6 +90,29 @@ export default function EventWizard() {
     setNovoDesafio("");
   }
 
+  async function handleCapaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCapaError(null);
+    setCapaUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/covers/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setCapaError(data.error || "Falha ao enviar a imagem.");
+        return;
+      }
+      setCapaUrl(data.url);
+    } catch {
+      setCapaError("Sem conexão. Tente de novo.");
+    } finally {
+      setCapaUploading(false);
+      e.target.value = "";
+    }
+  }
+
   async function handleCreate() {
     setError(null);
     const revealDate = new Date(revealAt);
@@ -94,6 +128,7 @@ export default function EventWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome: nome.trim(),
+          capaUrl,
           revealAt: revealDate.toISOString(),
           posesPorConvidado: poses,
           maxConvidados,
@@ -184,6 +219,73 @@ export default function EventWizard() {
         {step === 1 && (
           <div className="mt-6 flex-1">
             <p className="text-sm text-muted">
+              Aparece no seu painel e na hora da revelação. Opcional — dá pra pular.
+            </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleCapaUpload}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={capaUploading}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink/25 bg-bg-raised py-4 text-sm font-medium text-ink disabled:opacity-50"
+            >
+              <Upload size={16} />
+              {capaUploading ? "Enviando…" : "Enviar do seu celular"}
+            </button>
+            {capaError && <p className="mt-2 text-sm text-danger">{capaError}</p>}
+
+            <p className="mt-6 text-xs uppercase tracking-widest text-muted">Ou escolha uma capa</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {COVER_PRESETS.map((c) => {
+                const selected = capaUrl === c.url;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => setCapaUrl(selected ? null : c.url)}
+                    className={`relative aspect-[9/16] overflow-hidden rounded-lg border-2 ${
+                      selected ? "border-accent" : "border-transparent"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.url} alt="" className="h-full w-full object-cover" />
+                    {selected && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Check size={18} className="text-ink" />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {capaUrl && !capaUploading && (
+              <div className="mt-6">
+                <p className="mb-2 text-xs uppercase tracking-widest text-muted">Prévia</p>
+                <div className="relative h-40 w-full overflow-hidden rounded-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={capaUrl} alt="" className="h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-bg to-transparent" />
+                  <button
+                    onClick={() => setCapaUrl(null)}
+                    className="absolute right-2 top-2 rounded-full bg-black/50 px-3 py-1 text-xs text-ink"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="mt-6 flex-1">
+            <p className="text-sm text-muted">
               As fotos ficam ocultas até esse momento. Depois, todo o álbum é revelado de uma vez.
             </p>
             <input
@@ -195,7 +297,7 @@ export default function EventWizard() {
           </div>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="mt-6 flex-1">
             <p className="text-sm text-muted">Acabou o filme, acabou — o limite é rígido.</p>
             <div className="mt-8 flex items-center justify-center gap-2 rounded-full bg-bg-raised px-6 py-4 text-ink">
@@ -221,10 +323,10 @@ export default function EventWizard() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="mt-6 flex-1">
             <p className="text-sm text-muted">
-              Escolha o tamanho do seu evento. Dá pra fazer upgrade depois se precisar.
+              Garante que cada convidado tenha suas poses reservadas. Dá pra fazer upgrade depois.
             </p>
             <div className="mt-5 space-y-2">
               {PRICING_TIERS.map((t) => {
@@ -251,7 +353,7 @@ export default function EventWizard() {
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="mt-6 flex-1">
             <p className="text-sm text-muted">
               Desafios fotográficos opcionais que os convidados podem tentar durante a festa.
@@ -327,11 +429,12 @@ export default function EventWizard() {
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="mt-6 flex flex-1 flex-col">
             <p className="text-sm text-muted">Confira antes de criar.</p>
             <dl className="mt-6 divide-y divide-ink/10 rounded-xl border border-ink/10 bg-bg-raised">
               <Resumo label="Evento" value={nome} />
+              <Resumo label="Capa" value={capaUrl ? "Escolhida" : "Sem capa"} />
               <Resumo label="Revelação" value={new Date(revealAt).toLocaleString("pt-BR")} />
               <Resumo label="Poses" value={`${poses} por convidado`} />
               <Resumo
