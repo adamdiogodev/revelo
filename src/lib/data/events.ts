@@ -150,6 +150,19 @@ export async function setEventMaxConvidados(eventId: string, maxConvidados: numb
   if (error) throw new Error(error.message);
 }
 
+export async function updateEventSettings(
+  eventId: string,
+  updates: { capaUrl?: string | null; posesPorConvidado?: number }
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if ("capaUrl" in updates) patch.capa_url = updates.capaUrl;
+  if ("posesPorConvidado" in updates) patch.poses_por_convidado = updates.posesPorConvidado;
+  if (Object.keys(patch).length === 0) return;
+
+  const { error } = await supabaseAdmin.from("events").update(patch).eq("id", eventId);
+  if (error) throw new Error(error.message);
+}
+
 /** Evento + verificação de posse: só retorna algo se o evento pertencer a este anfitrião logado. */
 export async function getEventForHost(slug: string, hostUserId: string): Promise<EventRow | null> {
   const { data, error } = await supabaseAdmin

@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { Check, Copy, Download, Film, MessageCircle, CreditCard } from "lucide-react";
+import { Check, Copy, Download, Film, MessageCircle, CreditCard, Pencil, Upload, X } from "lucide-react";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
 import { formatBRL, formatConvidados } from "@/lib/pricing";
+import { COVER_PRESETS } from "@/lib/cover-presets";
 import RevealExperience from "@/components/RevealExperience";
 import CoverBackground from "@/components/CoverBackground";
 import type { PublicEventInfo } from "@/lib/types";
 
 type PendingPayment = { maxConvidados: number; valorCentavos: number };
+const POSES_OPCOES = [12, 18, 24];
 
 export default function HostDashboard({
   event: initialEvent,
@@ -33,6 +35,15 @@ export default function HostDashboard({
   );
   const [payingLoading, setPayingLoading] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [editing, setEditing] = useState(false);
+  const [editCapaUrl, setEditCapaUrl] = useState<string | null>(event.capaUrl);
+  const [editPoses, setEditPoses] = useState(event.posesPorConvidado);
+  const [capaUploading, setCapaUploading] = useState(false);
+  const [capaError, setCapaError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!siteUrl && typeof window !== "undefined") {
@@ -103,6 +114,60 @@ export default function HostDashboard({
     }
   }
 
+  function openEditor() {
+    setEditCapaUrl(event.capaUrl);
+    setEditPoses(event.posesPorConvidado);
+    setCapaError(null);
+    setSaveError(null);
+    setEditing(true);
+  }
+
+  async function handleEditCapaUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCapaError(null);
+    setCapaUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/covers/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setCapaError(data.error || "Falha ao enviar a imagem.");
+        return;
+      }
+      setEditCapaUrl(data.url);
+    } catch {
+      setCapaError("Sem conexão. Tente de novo.");
+    } finally {
+      setCapaUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleSaveEdit() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`/api/events/${event.slug}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capaUrl: editCapaUrl, posesPorConvidado: editPoses }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error || "Falha ao salvar.");
+        return;
+      }
+      setEvent(data);
+      setEditing(false);
+    } catch {
+      setSaveError("Sem conexão. Tente de novo.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (event.fase === "revelada") {
     return <RevealExperience slug={event.slug} isHost />;
   }
@@ -123,9 +188,16 @@ export default function HostDashboard({
     <div className="relative min-h-dvh px-6 py-10 text-ink">
       <CoverBackground url={event.capaUrl} />
       <div className="relative z-10 mx-auto max-w-md space-y-8">
-        <div className="text-center">
+        <div className="relative text-center">
           <p className="text-xs uppercase tracking-[0.2em] text-muted">painel do anfitrião</p>
           <h1 className="mt-2 font-display text-3xl italic text-ink">{event.nome}</h1>
+          <button
+            onClick={openEditor}
+            className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-bg-raised text-ink/70"
+            aria-label="Editar capa e poses"
+          >
+            <Pencil size={16} />
+          </button>
         </div>
 
         {pendingPayment && (
@@ -232,6 +304,88 @@ export default function HostDashboard({
           )}
         </div>
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
+          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-bg-raised p-5 text-ink">
+            <div className="flex items-center justify-between">
+              <p className="font-display text-xl italic">Editar evento</p>
+              <button
+                onClick={() => setEditing(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink/70"
+                aria-label="Fechar"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <p className="mt-6 text-sm font-medium text-muted">Capa</p>
+            <div className="mt-3 grid grid-cols-4 gap-2">
+              {COVER_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => setEditCapaUrl(preset.url)}
+                  className={`relative aspect-[9/16] overflow-hidden rounded-lg border-2 ${
+                    editCapaUrl === preset.url ? "border-accent" : "border-transparent"
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={preset.url} alt="" className="h-full w-full object-cover" />
+                  {editCapaUrl === preset.url && (
+                    <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-ink">
+                      <Check size={12} />
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <input
+              ref={editFileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleEditCapaUpload}
+            />
+            <button
+              onClick={() => editFileInputRef.current?.click()}
+              disabled={capaUploading}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-ink/15 bg-bg py-2.5 text-sm font-semibold text-ink disabled:opacity-50"
+            >
+              <Upload size={15} />
+              {capaUploading ? "Enviando…" : "Enviar minha própria imagem"}
+            </button>
+            {capaError && <p className="mt-2 text-center text-xs text-danger">{capaError}</p>}
+
+            <p className="mt-6 text-sm font-medium text-muted">Poses por convidado</p>
+            <div className="mt-3 flex gap-2">
+              {POSES_OPCOES.map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setEditPoses(n)}
+                  className={`flex-1 rounded-xl border py-3 font-semibold ${
+                    editPoses === n
+                      ? "border-accent bg-accent text-accent-ink"
+                      : "border-ink/15 bg-bg text-ink"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+
+            {saveError && <p className="mt-4 text-center text-sm text-danger">{saveError}</p>}
+
+            <button
+              onClick={handleSaveEdit}
+              disabled={saving || capaUploading}
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3 font-semibold text-bg disabled:opacity-50"
+            >
+              {saving ? "Salvando…" : "Salvar alterações"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

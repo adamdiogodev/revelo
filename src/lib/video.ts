@@ -4,6 +4,7 @@ import { mkdtemp, writeFile, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import ffmpegPath from "ffmpeg-static";
 import ffmpeg from "fluent-ffmpeg";
+import sharp from "sharp";
 
 if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
 
@@ -15,13 +16,57 @@ const PHOTO_SECONDS = 2;
 const FONT_PATH = path.join(process.cwd(), "assets", "fonts", "Geist-Regular.ttf");
 const FALLBACK_COVER_PATH = path.join(process.cwd(), "public", "covers", "preset-dourado.jpg");
 
-/** Escapa texto para uso seguro dentro do filtro drawtext do ffmpeg. */
-function escapeDrawtext(text: string): string {
+function escapeXml(text: string): string {
   return text
-    .replace(/\\/g, "\\\\\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "’")
-    .replace(/%/g, "\\%");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Monta o quadro de abertura (capa + nome do evento) via sharp: o texto é
+ * renderizado pelo Pango do sharp apontando direto pro arquivo da fonte
+ * (fontfile), sem depender do fontconfig do sistema nem do drawtext do
+ * ffmpeg — em builds estáticas de Linux o ffmpeg pode vir sem esse suporte,
+ * e SVG com @font-face embutido não é respeitado pelo librsvg.
+ */
+async function buildTitleFrame(coverBuffer: Buffer, eventNome: string): Promise<Buffer> {
+  const bandHeight = 170;
+  const bandY = Math.round(HEIGHT / 2 - bandHeight / 2);
+  const markup = `<span foreground="white">${escapeXml(eventNome)}</span>`;
+
+  const textPng = await sharp({
+    text: {
+      text: markup,
+      fontfile: FONT_PATH,
+      font: "Geist",
+      width: WIDTH - 120,
+      height: bandHeight - 30,
+      align: "center",
+      rgba: true,
+    },
+  })
+    .png()
+    .toBuffer();
+
+  const textMeta = await sharp(textPng).metadata();
+  const textLeft = Math.round((WIDTH - (textMeta.width ?? 0)) / 2);
+  const textTop = Math.round(bandY + (bandHeight - (textMeta.height ?? 0)) / 2);
+
+  const bandSvg = `<svg width="${WIDTH}" height="${HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="${bandY}" width="${WIDTH}" height="${bandHeight}" fill="black" fill-opacity="0.45" />
+  </svg>`;
+
+  return sharp(coverBuffer)
+    .resize(WIDTH, HEIGHT, { fit: "cover" })
+    .composite([
+      { input: Buffer.from(bandSvg), top: 0, left: 0 },
+      { input: textPng, top: textTop, left: textLeft },
+    ])
+    .jpeg()
+    .toBuffer();
 }
 
 export async function generateHighlightVideo(params: {
@@ -32,7 +77,8 @@ export async function generateHighlightVideo(params: {
   const dir = await mkdtemp(path.join(tmpdir(), "revelo-video-"));
 
   try {
-    const titleBuffer = params.capaBuffer ?? (await readFile(FALLBACK_COVER_PATH));
+    const titleSource = params.capaBuffer ?? (await readFile(FALLBACK_COVER_PATH));
+    const titleBuffer = await buildTitleFrame(titleSource, params.eventNome);
 
     const frames: { file: string; seconds: number }[] = [];
 
@@ -47,21 +93,12 @@ export async function generateHighlightVideo(params: {
     }
 
     const outputPath = path.join(dir, "output.mp4");
-    const text = escapeDrawtext(params.eventNome);
-    // No Windows o caminho tem "C:" — dois-pontos quebra o parser de filtros
-    // do ffmpeg (usa ":" pra separar opções), então escapa também aqui.
-    const escapedFontPath = FONT_PATH.replace(/\\/g, "/").replace(/:/g, "\\:");
 
     const filterParts: string[] = [];
     frames.forEach((_, i) => {
-      const base = `[${i}:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},setsar=1`;
-      if (i === 0) {
-        filterParts.push(
-          `${base},drawtext=fontfile='${escapedFontPath}':text='${text}':fontsize=64:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:box=1:boxcolor=black@0.45:boxborderw=24[v${i}]`
-        );
-      } else {
-        filterParts.push(`${base}[v${i}]`);
-      }
+      filterParts.push(
+        `[${i}:v]scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},setsar=1[v${i}]`
+      );
     });
     const concatInputs = frames.map((_, i) => `[v${i}]`).join("");
     filterParts.push(`${concatInputs}concat=n=${frames.length}:v=1:a=0[outv]`);

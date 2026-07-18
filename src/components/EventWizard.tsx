@@ -5,15 +5,10 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Film, Users, Upload, Check } from "lucide-react";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
 import { PRICING_TIERS, FREE_TIER, formatBRL, formatConvidados } from "@/lib/pricing";
+import { COVER_PRESETS } from "@/lib/cover-presets";
 
 const NOME_SUGESTOES = ["Churrasco", "Aniversário", "Formatura", "Confraternização", "Despedida"];
 const POSES_OPCOES = [12, 18, 24];
-const COVER_PRESETS = [
-  { id: "preset-dourado", url: "/covers/preset-dourado.jpg" },
-  { id: "preset-vinho", url: "/covers/preset-vinho.jpg" },
-  { id: "preset-verde", url: "/covers/preset-verde.jpg" },
-  { id: "preset-azul", url: "/covers/preset-azul.jpg" },
-];
 
 function nextMidnightLocalInputValue() {
   const d = new Date();
