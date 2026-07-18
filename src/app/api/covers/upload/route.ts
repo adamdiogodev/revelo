@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+const MAX_BYTES = 20 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Arquivo ausente." }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Imagem muito grande (máximo 5MB)." }, { status: 400 });
+    return NextResponse.json({ error: "Imagem muito grande (máximo 20MB)." }, { status: 400 });
   }
   if (!file.type.startsWith("image/")) {
     return NextResponse.json({ error: "O arquivo precisa ser uma imagem." }, { status: 400 });

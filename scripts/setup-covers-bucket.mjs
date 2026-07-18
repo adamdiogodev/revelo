@@ -24,11 +24,20 @@ const { data: buckets } = await supabase.storage.listBuckets();
 const exists = buckets?.some((b) => b.name === bucket);
 
 if (exists) {
-  console.log(`Bucket "${bucket}" já existe.`);
+  const { error } = await supabase.storage.updateBucket(bucket, {
+    public: true,
+    fileSizeLimit: "20MB",
+    allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  });
+  if (error) {
+    console.error("Erro ao atualizar bucket:", error.message);
+    process.exit(1);
+  }
+  console.log(`Bucket "${bucket}" atualizado (limite: 20MB).`);
 } else {
   const { error } = await supabase.storage.createBucket(bucket, {
     public: true,
-    fileSizeLimit: "5MB",
+    fileSizeLimit: "20MB",
     allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   });
   if (error) {
