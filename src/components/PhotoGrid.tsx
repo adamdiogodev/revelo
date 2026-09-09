@@ -40,7 +40,7 @@ export default function PhotoGrid({
 
   async function handleDelete(photo: RevealPhoto) {
     if (!isHost) return;
-    if (!window.confirm("Excluir esta foto para sempre? Não dá para desfazer.")) return;
+    if (!window.confirm("Delete this photo forever? There is no undo.")) return;
 
     setDeleting(true);
     try {
@@ -79,8 +79,8 @@ export default function PhotoGrid({
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Falha ao gerar o vídeo." }));
-        setVideoError(data.error || "Falha ao gerar o vídeo.");
+        const data = await res.json().catch(() => ({ error: "We could not build the video." }));
+        setVideoError(data.error || "We could not build the video.");
         return;
       }
 
@@ -94,7 +94,7 @@ export default function PhotoGrid({
       setSelectMode(false);
       setSelectedIds([]);
     } catch {
-      setVideoError("Sem conexão. Tente de novo.");
+      setVideoError("No connection. Try again.");
     } finally {
       setVideoLoading(false);
     }
@@ -102,15 +102,18 @@ export default function PhotoGrid({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h2 className="text-center font-display text-2xl italic text-ink">Todas as fotos</h2>
+      <div className="flex items-baseline justify-center gap-2">
+        <h2 className="font-display text-2xl italic text-ink">Every shot</h2>
+        <span className="font-mono text-xs text-muted">{localPhotos.length}</span>
+      </div>
 
       <div className="mt-4 flex flex-wrap justify-center gap-2">
         <select
           value={filterGuest}
           onChange={(e) => setFilterGuest(e.target.value)}
-          className="rounded-full border border-ink/15 bg-bg-raised px-3 py-1.5 text-sm text-ink"
+          className="rounded-full border border-[var(--color-line)] bg-[rgba(247,240,237,0.05)] px-3.5 py-1.5 text-sm text-ink"
         >
-          <option value="">Todas as pessoas</option>
+          <option value="">Everyone</option>
           {guestNames.map((n) => (
             <option key={n} value={n} className="text-black">
               {n}
@@ -122,9 +125,9 @@ export default function PhotoGrid({
           <select
             value={filterChallenge}
             onChange={(e) => setFilterChallenge(e.target.value)}
-            className="rounded-full border border-ink/15 bg-bg-raised px-3 py-1.5 text-sm text-ink"
+            className="rounded-full border border-[var(--color-line)] bg-[rgba(247,240,237,0.05)] px-3.5 py-1.5 text-sm text-ink"
           >
-            <option value="">Todos os desafios</option>
+            <option value="">All challenges</option>
             {challengeTitles.map((t) => (
               <option key={t} value={t} className="text-black">
                 {t}
@@ -135,18 +138,20 @@ export default function PhotoGrid({
 
         <button
           onClick={toggleSelectMode}
-          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${
-            selectMode ? "border-accent bg-accent text-accent-ink" : "border-ink/15 bg-bg-raised text-ink"
+          className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+            selectMode
+              ? "border-accent bg-accent text-white"
+              : "border-[var(--color-line)] bg-[rgba(247,240,237,0.05)] text-ink"
           }`}
         >
           <Clapperboard size={14} />
-          {selectMode ? "Cancelar" : "Criar vídeo"}
+          {selectMode ? "Cancel" : "Make a video"}
         </button>
       </div>
 
       {selectMode && (
         <p className="mt-3 text-center text-xs text-muted">
-          Toque em até {MAX_VIDEO_PHOTOS} fotos para montar um vídeo pra postar no Instagram.
+          Tap up to {MAX_VIDEO_PHOTOS} photos to cut a clip for your stories.
         </p>
       )}
 
@@ -157,14 +162,18 @@ export default function PhotoGrid({
             <button
               key={p.id}
               onClick={() => (selectMode ? toggleSelected(p.id) : setOpenPhoto(p))}
-              className="relative aspect-square overflow-hidden rounded-lg bg-bg-raised"
+              className="relative aspect-square overflow-hidden rounded-2xl bg-bg-raised"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.viewUrl} alt={`Foto de ${p.guestNome}`} className="h-full w-full object-cover" />
+              <img
+                src={p.viewUrl}
+                alt={`Photo by ${p.guestNome}`}
+                className="h-full w-full object-cover"
+              />
               {selectMode && (
                 <span
-                  className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                    selected ? "border-accent bg-accent text-accent-ink" : "border-ink/60 bg-black/30"
+                  className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                    selected ? "border-accent bg-accent text-white" : "border-white/70 bg-black/30"
                   }`}
                 >
                   {selected && <Check size={14} />}
@@ -176,21 +185,21 @@ export default function PhotoGrid({
       </div>
 
       {filtered.length === 0 && (
-        <p className="mt-8 text-center text-muted">Nenhuma foto encontrada com esse filtro.</p>
+        <p className="mt-8 text-center text-muted">No photos match that filter.</p>
       )}
 
       {selectMode && selectedIds.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-3 border-t border-ink/10 bg-bg/95 p-4 backdrop-blur">
+        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-3 border-t border-[var(--color-line)] bg-bg/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
           <span className="text-sm text-muted">
-            {selectedIds.length}/{MAX_VIDEO_PHOTOS} selecionadas
+            {selectedIds.length}/{MAX_VIDEO_PHOTOS} selected
           </span>
           <button
             onClick={handleGenerateVideo}
             disabled={videoLoading}
-            className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg disabled:opacity-50"
+            className="btn btn-primary px-5 py-2.5 text-sm"
           >
             <Clapperboard size={16} />
-            {videoLoading ? "Gerando vídeo…" : "Gerar vídeo"}
+            {videoLoading ? "Building video…" : "Build video"}
           </button>
         </div>
       )}
@@ -204,26 +213,26 @@ export default function PhotoGrid({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={openPhoto.viewUrl}
-            alt={`Foto de ${openPhoto.guestNome}`}
-            className="max-h-[75vh] max-w-full rounded-lg object-contain"
+            alt={`Photo by ${openPhoto.guestNome}`}
+            className="max-h-[72vh] max-w-full rounded-2xl object-contain"
             onClick={(e) => e.stopPropagation()}
           />
-          <div className="mt-4 text-center text-ink">
+          <div className="mt-5 text-center text-ink">
             <p className="font-display text-lg italic">{openPhoto.guestNome}</p>
             <p className="text-sm text-ink/60">
-              {new Date(openPhoto.takenAt).toLocaleString("pt-BR")}
+              {new Date(openPhoto.takenAt).toLocaleString("en-US")}
             </p>
             {openPhoto.challengeTitulo && (
-              <p className="mt-1 text-sm text-accent">🎯 {openPhoto.challengeTitulo}</p>
+              <p className="mt-1 text-sm text-accent-soft">🎯 {openPhoto.challengeTitulo}</p>
             )}
-            <div className="mt-4 flex justify-center gap-3">
+            <div className="mt-5 flex justify-center gap-3">
               <a
                 href={openPhoto.downloadUrl}
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-bg"
+                className="btn btn-primary px-5 py-2.5 text-sm"
               >
                 <Download size={16} />
-                Baixar
+                Download
               </a>
               {isHost && (
                 <button
@@ -232,20 +241,20 @@ export default function PhotoGrid({
                     handleDelete(openPhoto);
                   }}
                   disabled={deleting}
-                  className="flex items-center gap-2 rounded-full bg-danger px-5 py-2.5 font-semibold text-bg disabled:opacity-50"
+                  className="btn btn-ghost px-5 py-2.5 text-sm text-danger"
                 >
                   <Trash2 size={16} />
-                  {deleting ? "Excluindo…" : "Excluir"}
+                  {deleting ? "Deleting…" : "Delete"}
                 </button>
               )}
             </div>
           </div>
           <button
             onClick={() => setOpenPhoto(null)}
-            className="absolute right-4 top-[max(1rem,env(safe-area-inset-top))] text-ink/70"
-            aria-label="Fechar"
+            className="icon-btn absolute right-4 top-[max(1rem,env(safe-area-inset-top))] h-10 w-10"
+            aria-label="Close"
           >
-            <X size={26} />
+            <X size={20} />
           </button>
         </div>
       )}

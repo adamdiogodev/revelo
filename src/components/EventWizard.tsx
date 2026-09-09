@@ -2,13 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Film, Users, Upload, Check } from "lucide-react";
+import { ChevronLeft, Film, Users, Upload, Check, ArrowRight, Sparkles, X } from "lucide-react";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
-import { PRICING_TIERS, FREE_TIER, formatBRL, formatConvidados } from "@/lib/pricing";
+import { PRICING_TIERS, FREE_TIER, formatPrice, formatGuestLimit } from "@/lib/pricing";
 import { COVER_PRESETS } from "@/lib/cover-presets";
 
-const NOME_SUGESTOES = ["Churrasco", "Aniversário", "Formatura", "Confraternização", "Despedida"];
-const POSES_OPCOES = [12, 18, 24];
+const NAME_SUGGESTIONS = ["Birthday", "BBQ", "Graduation", "Housewarming", "Farewell"];
+const SHOT_OPTIONS = [12, 18, 24];
 
 function nextMidnightLocalInputValue() {
   const d = new Date();
@@ -20,14 +20,32 @@ function nextMidnightLocalInputValue() {
   )}`;
 }
 
-const STEP_TITLES = [
-  "Qual é o nome do seu evento?",
-  "Escolha uma capa",
-  "Quando vai rolar a revelação?",
-  "Quantas poses por convidado?",
-  "Quantos convidados no máximo?",
-  "Quer ativar o Modo Desafios?",
-  "Tudo pronto",
+const STEPS = [
+  {
+    title: "What is your party called?",
+    hint: "It is the first thing guests see when they scan the QR code.",
+  },
+  {
+    title: "Pick a cover",
+    hint: "Shows up on your panel and at reveal time. Optional — you can skip it.",
+  },
+  {
+    title: "When does it develop?",
+    hint: "Photos stay hidden until then. After that, the whole album opens at once.",
+  },
+  {
+    title: "How many shots each?",
+    hint: "When the roll runs out, it runs out — the limit is hard.",
+  },
+  {
+    title: "How many guests, max?",
+    hint: "Reserves a roll of film for every guest. You can upgrade later.",
+  },
+  {
+    title: "Want Challenge Mode?",
+    hint: "Optional photo missions your guests can chase during the party.",
+  },
+  { title: "All set", hint: "One last look before you create it." },
 ];
 
 export default function EventWizard() {
@@ -49,18 +67,18 @@ export default function EventWizard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const lastStep = STEP_TITLES.length - 1;
+  const lastStep = STEPS.length - 1;
 
   function goNext() {
     setError(null);
     if (step === 0 && !nome.trim()) {
-      setError("Dá um nome para o evento.");
+      setError("Give your party a name.");
       return;
     }
     if (step === 2) {
       const d = new Date(revealAt);
       if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) {
-        setError("Escolha um horário de revelação no futuro.");
+        setError("Pick a reveal time in the future.");
         return;
       }
     }
@@ -96,12 +114,12 @@ export default function EventWizard() {
       const res = await fetch("/api/covers/upload", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
-        setCapaError(data.error || "Falha ao enviar a imagem.");
+        setCapaError(data.error || "We could not upload that image.");
         return;
       }
       setCapaUrl(data.url);
     } catch {
-      setCapaError("Sem conexão. Tente de novo.");
+      setCapaError("No connection. Try again.");
     } finally {
       setCapaUploading(false);
       e.target.value = "";
@@ -133,8 +151,8 @@ export default function EventWizard() {
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Erro ao criar evento." }));
-        setError(data.error || "Erro ao criar evento.");
+        const data = await res.json().catch(() => ({ error: "We could not create your party." }));
+        setError(data.error || "We could not create your party.");
         setLoading(false);
         return;
       }
@@ -146,63 +164,64 @@ export default function EventWizard() {
         router.push(`/${data.slug}/host?created=1`);
       }
     } catch {
-      setError("Sem conexão. Tente de novo.");
+      setError("No connection. Try again.");
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex h-dvh w-full flex-col bg-bg text-ink">
-      <div className="flex items-center gap-3 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden">
+      <div className="ambient" />
+
+      <header className="relative z-10 mx-auto flex w-full max-w-md items-center gap-3 px-5 pt-[max(1rem,env(safe-area-inset-top))]">
         <button
           onClick={goBack}
-          aria-label="Voltar"
-          className={`flex h-9 w-9 items-center justify-center rounded-full bg-bg-raised text-ink ${
-            step === 0 ? "invisible" : ""
-          }`}
+          aria-label="Back"
+          className={`icon-btn h-9 w-9 ${step === 0 ? "invisible" : ""}`}
         >
           <ChevronLeft size={18} />
         </button>
         <div className="flex flex-1 gap-1.5">
-          {STEP_TITLES.map((_, i) => (
+          {STEPS.map((_, i) => (
             <div
               key={i}
               className={`h-1 flex-1 rounded-full transition-colors ${
-                i <= step ? "bg-accent" : "bg-ink/10"
+                i <= step ? "bg-accent" : "bg-[rgba(247,240,237,0.12)]"
               }`}
             />
           ))}
         </div>
-      </div>
+        <span className="font-mono text-[11px] text-muted">
+          {step + 1}/{STEPS.length}
+        </span>
+      </header>
 
       <div
         key={step}
-        className="flex flex-1 flex-col overflow-y-auto px-6 pb-6 pt-8 animate-[fadeIn_350ms_ease-out]"
+        className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col overflow-y-auto px-5 pb-5 pt-8 animate-[riseIn_400ms_ease-out]"
       >
-        <h1 className="font-display text-3xl italic leading-tight text-ink">
-          {STEP_TITLES[step]}
+        <h1 className="font-display text-[2rem] italic leading-[1.1] text-ink">
+          {STEPS[step].title}
         </h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted">{STEPS[step].hint}</p>
 
         {step === 0 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">
-              É a primeira coisa que seus convidados veem ao escanear o QR code.
-            </p>
+          <div className="mt-7 flex-1">
             <input
               value={nome}
               onChange={(e) => setNome(e.target.value)}
-              placeholder="Nome do evento"
+              placeholder="Party name"
               maxLength={80}
               autoFocus
-              className="mt-6 w-full rounded-xl border border-ink/15 bg-bg-raised px-4 py-3.5 text-lg text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+              className="field py-4 text-lg"
             />
-            <p className="mt-6 text-xs uppercase tracking-widest text-muted">Sugestões</p>
+            <p className="label-caps mt-7">Suggestions</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {NOME_SUGESTOES.map((s) => (
+              {NAME_SUGGESTIONS.map((s) => (
                 <button
                   key={s}
                   onClick={() => setNome(s)}
-                  className="rounded-full border border-ink/15 bg-bg-raised px-4 py-2 text-sm text-ink/90"
+                  className="badge px-4 py-2 text-sm text-ink/90"
                 >
                   {s}
                 </button>
@@ -212,11 +231,7 @@ export default function EventWizard() {
         )}
 
         {step === 1 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">
-              Aparece no seu painel e na hora da revelação. Opcional — dá pra pular.
-            </p>
-
+          <div className="mt-7 flex-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -228,14 +243,14 @@ export default function EventWizard() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={capaUploading}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-ink/25 bg-bg-raised py-4 text-sm font-medium text-ink disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[rgba(247,240,237,0.22)] bg-[rgba(247,240,237,0.03)] py-5 text-sm font-medium text-ink disabled:opacity-50"
             >
               <Upload size={16} />
-              {capaUploading ? "Enviando…" : "Enviar do seu celular"}
+              {capaUploading ? "Uploading…" : "Upload from your phone"}
             </button>
             {capaError && <p className="mt-2 text-sm text-danger">{capaError}</p>}
 
-            <p className="mt-6 text-xs uppercase tracking-widest text-muted">Ou escolha uma capa</p>
+            <p className="label-caps mt-7">Or pick one</p>
             <div className="mt-3 grid grid-cols-4 gap-2">
               {COVER_PRESETS.map((c) => {
                 const selected = capaUrl === c.url;
@@ -243,14 +258,14 @@ export default function EventWizard() {
                   <button
                     key={c.id}
                     onClick={() => setCapaUrl(selected ? null : c.url)}
-                    className={`relative aspect-[9/16] overflow-hidden rounded-lg border-2 ${
+                    className={`relative aspect-[9/16] overflow-hidden rounded-xl border-2 transition-colors ${
                       selected ? "border-accent" : "border-transparent"
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={c.url} alt="" className="h-full w-full object-cover" />
                     {selected && (
-                      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/40">
                         <Check size={18} className="text-ink" />
                       </span>
                     )}
@@ -260,17 +275,21 @@ export default function EventWizard() {
             </div>
 
             {capaUrl && !capaUploading && (
-              <div className="mt-6">
-                <p className="mb-2 text-xs uppercase tracking-widest text-muted">Prévia</p>
-                <div className="relative h-40 w-full overflow-hidden rounded-xl">
+              <div className="mt-7">
+                <p className="label-caps">Preview</p>
+                <div className="relative mt-3 h-44 w-full overflow-hidden rounded-2xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={capaUrl} alt="" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-bg to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-bg via-bg/20 to-transparent" />
+                  <p className="absolute bottom-3 left-4 font-display text-xl italic text-ink">
+                    {nome || "Your party"}
+                  </p>
                   <button
                     onClick={() => setCapaUrl(null)}
-                    className="absolute right-2 top-2 rounded-full bg-black/50 px-3 py-1 text-xs text-ink"
+                    aria-label="Remove cover"
+                    className="icon-btn absolute right-2 top-2 h-8 w-8 bg-black/50"
                   >
-                    Remover
+                    <X size={15} />
                   </button>
                 </div>
               </div>
@@ -279,36 +298,39 @@ export default function EventWizard() {
         )}
 
         {step === 2 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">
-              As fotos ficam ocultas até esse momento. Depois, todo o álbum é revelado de uma vez.
-            </p>
+          <div className="mt-7 flex-1">
             <input
               type="datetime-local"
               value={revealAt}
               onChange={(e) => setRevealAt(e.target.value)}
-              className="mt-6 w-full rounded-xl border border-ink/15 bg-bg-raised px-4 py-3.5 text-ink focus:border-accent focus:outline-none [color-scheme:dark]"
+              className="field py-4 text-lg [color-scheme:dark]"
             />
+            <div className="card mt-4 flex items-start gap-3 p-4">
+              <Sparkles size={16} className="mt-0.5 shrink-0 text-accent-soft" />
+              <p className="text-[13px] leading-snug text-muted">
+                A morning-after reveal works beautifully — everyone wakes up to the night they
+                barely remember.
+              </p>
+            </div>
           </div>
         )}
 
         {step === 3 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">Acabou o filme, acabou — o limite é rígido.</p>
-            <div className="mt-8 flex items-center justify-center gap-2 rounded-full bg-bg-raised px-6 py-4 text-ink">
-              <Film size={18} className="text-muted" />
-              <span className="font-display text-4xl italic tabular-nums">{poses}</span>
-              <span className="text-sm text-muted">poses</span>
+          <div className="mt-7 flex-1">
+            <div className="card flex items-center justify-center gap-3 py-8">
+              <Film size={20} className="text-muted" />
+              <span className="font-display text-5xl italic tabular-nums text-ink">{poses}</span>
+              <span className="text-sm text-muted">shots</span>
             </div>
-            <div className="mt-6 flex gap-2">
-              {POSES_OPCOES.map((n) => (
+            <div className="mt-4 flex gap-2">
+              {SHOT_OPTIONS.map((n) => (
                 <button
                   key={n}
                   onClick={() => setPoses(n)}
-                  className={`flex-1 rounded-xl border py-3 font-semibold ${
+                  className={`flex-1 rounded-2xl border py-3.5 font-semibold transition-colors ${
                     poses === n
-                      ? "border-accent bg-accent text-accent-ink"
-                      : "border-ink/15 bg-bg-raised text-ink"
+                      ? "border-accent bg-accent text-white"
+                      : "border-[var(--color-line)] bg-[rgba(247,240,237,0.04)] text-ink"
                   }`}
                 >
                   {n}
@@ -319,51 +341,50 @@ export default function EventWizard() {
         )}
 
         {step === 4 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">
-              Garante que cada convidado tenha suas poses reservadas. Dá pra fazer upgrade depois.
-            </p>
-            <div className="mt-5 space-y-2">
-              {PRICING_TIERS.map((t) => {
-                const selected = maxConvidados === t.maxConvidados;
-                return (
-                  <button
-                    key={t.maxConvidados}
-                    onClick={() => setMaxConvidados(t.maxConvidados)}
-                    className={`flex w-full items-center justify-between rounded-xl border px-4 py-3.5 text-left ${
-                      selected ? "border-accent bg-accent/10" : "border-ink/15 bg-bg-raised"
-                    }`}
+          <div className="mt-7 flex-1 space-y-2">
+            {PRICING_TIERS.map((t) => {
+              const selected = maxConvidados === t.maxConvidados;
+              return (
+                <button
+                  key={t.maxConvidados}
+                  onClick={() => setMaxConvidados(t.maxConvidados)}
+                  className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3.5 text-left transition-colors ${
+                    selected
+                      ? "border-accent/60 bg-accent/10"
+                      : "border-[var(--color-line)] bg-[rgba(247,240,237,0.04)]"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 text-ink">
+                    <Users size={16} className={selected ? "text-accent-soft" : "text-muted"} />
+                    {formatGuestLimit(t.maxConvidados)} guests
+                  </span>
+                  <span
+                    className={`font-display italic ${selected ? "text-accent-soft" : "text-ink/80"}`}
                   >
-                    <span className="flex items-center gap-2 text-ink">
-                      <Users size={16} className="text-muted" />
-                      {formatConvidados(t.maxConvidados)} convidados
-                    </span>
-                    <span className={`font-display italic ${selected ? "text-accent" : "text-ink/80"}`}>
-                      {formatBRL(t.precoCentavos)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                    {formatPrice(t.precoCentavos)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         )}
 
         {step === 5 && (
-          <div className="mt-6 flex-1">
-            <p className="text-sm text-muted">
-              Desafios fotográficos opcionais que os convidados podem tentar durante a festa.
-            </p>
-
+          <div className="mt-7 flex-1">
             <button
               onClick={() => setModoDesafios((v) => !v)}
-              className={`mt-6 flex w-full items-center justify-between rounded-xl border px-4 py-3.5 ${
-                modoDesafios ? "border-accent bg-accent/10" : "border-ink/15 bg-bg-raised"
+              className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 transition-colors ${
+                modoDesafios
+                  ? "border-accent/60 bg-accent/10"
+                  : "border-[var(--color-line)] bg-[rgba(247,240,237,0.04)]"
               }`}
             >
-              <span className="font-medium text-ink">Modo Desafios</span>
+              <span className="font-medium text-ink">Challenge Mode</span>
               <span
                 className={`flex h-6 w-11 items-center rounded-full px-0.5 transition-colors ${
-                  modoDesafios ? "justify-end bg-accent" : "justify-start bg-ink/20"
+                  modoDesafios
+                    ? "justify-end bg-accent"
+                    : "justify-start bg-[rgba(247,240,237,0.18)]"
                 }`}
               >
                 <span className="h-5 w-5 rounded-full bg-ink" />
@@ -371,35 +392,48 @@ export default function EventWizard() {
             </button>
 
             {modoDesafios && (
-              <div className="mt-5 space-y-2">
-                {CHALLENGE_PRESETS.map((c) => (
-                  <label
-                    key={c.titulo}
-                    className="flex items-center gap-3 rounded-lg border border-ink/10 bg-bg-raised px-3 py-2.5 text-sm text-ink/90"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedPresets.includes(c.titulo)}
-                      onChange={() => togglePreset(c.titulo)}
-                      className="h-4 w-4 accent-accent"
-                    />
-                    <span>
-                      {c.emoji} {c.titulo}
-                    </span>
-                  </label>
-                ))}
+              <div className="mt-4 space-y-2">
+                {CHALLENGE_PRESETS.map((c) => {
+                  const checked = selectedPresets.includes(c.titulo);
+                  return (
+                    <button
+                      key={c.titulo}
+                      onClick={() => togglePreset(c.titulo)}
+                      className={`flex w-full items-center gap-3 rounded-xl border px-3.5 py-3 text-left text-sm transition-colors ${
+                        checked
+                          ? "border-accent/50 bg-accent/10 text-ink"
+                          : "border-[var(--color-line)] bg-[rgba(247,240,237,0.04)] text-ink/90"
+                      }`}
+                    >
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
+                          checked
+                            ? "border-accent bg-accent text-white"
+                            : "border-[rgba(247,240,237,0.25)]"
+                        }`}
+                      >
+                        {checked && <Check size={12} />}
+                      </span>
+                      <span>
+                        {c.emoji} {c.titulo}
+                      </span>
+                    </button>
+                  );
+                })}
 
                 {customChallenges.map((c, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between rounded-lg border border-ink/10 bg-bg-raised px-3 py-2.5 text-sm text-ink/90"
+                    className="flex items-center justify-between rounded-xl border border-[var(--color-line)] bg-[rgba(247,240,237,0.04)] px-3.5 py-3 text-sm text-ink/90"
                   >
                     <span>📸 {c}</span>
                     <button
-                      onClick={() => setCustomChallenges((prev) => prev.filter((_, idx) => idx !== i))}
+                      onClick={() =>
+                        setCustomChallenges((prev) => prev.filter((_, idx) => idx !== i))
+                      }
                       className="text-muted"
                     >
-                      remover
+                      remove
                     </button>
                   </div>
                 ))}
@@ -408,14 +442,11 @@ export default function EventWizard() {
                   <input
                     value={novoDesafio}
                     onChange={(e) => setNovoDesafio(e.target.value)}
-                    placeholder="Escreva seu próprio desafio"
+                    placeholder="Write your own challenge"
                     maxLength={80}
-                    className="flex-1 rounded-lg border border-ink/15 bg-bg-raised px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                    className="field flex-1 py-2.5 text-sm"
                   />
-                  <button
-                    onClick={addCustomChallenge}
-                    className="rounded-lg bg-ink/10 px-4 text-sm font-medium text-ink"
-                  >
+                  <button onClick={addCustomChallenge} className="btn btn-ghost px-5 text-sm">
                     Add
                   </button>
                 </div>
@@ -425,25 +456,24 @@ export default function EventWizard() {
         )}
 
         {step === 6 && (
-          <div className="mt-6 flex flex-1 flex-col">
-            <p className="text-sm text-muted">Confira antes de criar.</p>
-            <dl className="mt-6 divide-y divide-ink/10 rounded-xl border border-ink/10 bg-bg-raised">
-              <Resumo label="Evento" value={nome} />
-              <Resumo label="Capa" value={capaUrl ? "Escolhida" : "Sem capa"} />
-              <Resumo label="Revelação" value={new Date(revealAt).toLocaleString("pt-BR")} />
-              <Resumo label="Poses" value={`${poses} por convidado`} />
-              <Resumo
-                label="Convidados"
-                value={`até ${formatConvidados(maxConvidados)} (${formatBRL(
+          <div className="mt-7 flex flex-1 flex-col">
+            <dl className="card divide-y divide-[var(--color-line)] overflow-hidden">
+              <Summary label="Party" value={nome} />
+              <Summary label="Cover" value={capaUrl ? "Chosen" : "None"} />
+              <Summary label="Reveal" value={new Date(revealAt).toLocaleString("en-US")} />
+              <Summary label="Shots" value={`${poses} per guest`} />
+              <Summary
+                label="Guests"
+                value={`up to ${formatGuestLimit(maxConvidados)} (${formatPrice(
                   PRICING_TIERS.find((t) => t.maxConvidados === maxConvidados)?.precoCentavos || 0
                 )})`}
               />
-              <Resumo
-                label="Desafios"
+              <Summary
+                label="Challenges"
                 value={
                   modoDesafios
-                    ? `${selectedPresets.length + customChallenges.length || CHALLENGE_PRESETS.length} ativos`
-                    : "Desativado"
+                    ? `${selectedPresets.length + customChallenges.length || CHALLENGE_PRESETS.length} active`
+                    : "Off"
                 }
               />
             </dl>
@@ -452,16 +482,13 @@ export default function EventWizard() {
 
             <div className="flex-1" />
 
-            <button
-              onClick={handleCreate}
-              disabled={loading}
-              className="mt-6 w-full rounded-full bg-ink py-3.5 text-base font-semibold text-bg disabled:opacity-50"
-            >
+            <button onClick={handleCreate} disabled={loading} className="btn btn-primary mt-6 w-full">
               {loading
-                ? "Criando…"
+                ? "Creating…"
                 : maxConvidados === FREE_TIER.maxConvidados
-                  ? "Criar evento grátis"
-                  : "Ir para pagamento"}
+                  ? "Create free party"
+                  : "Go to checkout"}
+              {!loading && <ArrowRight size={17} />}
             </button>
           </div>
         )}
@@ -470,11 +497,9 @@ export default function EventWizard() {
           <>
             {error && <p className="mt-4 text-sm text-danger">{error}</p>}
             <div className="flex-1" />
-            <button
-              onClick={goNext}
-              className="mt-6 w-full rounded-full bg-ink py-3.5 text-base font-semibold text-bg"
-            >
-              Continuar
+            <button onClick={goNext} className="btn btn-primary mt-6 w-full">
+              Continue
+              <ArrowRight size={17} />
             </button>
           </>
         )}
@@ -483,11 +508,11 @@ export default function EventWizard() {
   );
 }
 
-function Resumo({ label, value }: { label: string; value: string }) {
+function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between px-4 py-3 text-sm">
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5 text-sm">
       <span className="text-muted">{label}</span>
-      <span className="font-medium text-ink">{value}</span>
+      <span className="truncate font-medium text-ink">{value}</span>
     </div>
   );
 }

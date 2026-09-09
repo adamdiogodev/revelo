@@ -26,11 +26,11 @@ function escapeXml(text: string): string {
 }
 
 /**
- * Monta o quadro de abertura (capa + nome do evento) via sharp: o texto é
- * renderizado pelo Pango do sharp apontando direto pro arquivo da fonte
- * (fontfile), sem depender do fontconfig do sistema nem do drawtext do
- * ffmpeg — em builds estáticas de Linux o ffmpeg pode vir sem esse suporte,
- * e SVG com @font-face embutido não é respeitado pelo librsvg.
+ * Builds the opening frame (cover + party name) with sharp: the text is
+ * rendered by sharp's Pango pointing straight at the font file (fontfile),
+ * without depending on the system fontconfig or on ffmpeg's drawtext — static
+ * Linux ffmpeg builds may ship without that support, and librsvg ignores SVG
+ * with an embedded @font-face.
  */
 async function buildTitleFrame(coverBuffer: Buffer, eventNome: string): Promise<Buffer> {
   const bandHeight = 170;

@@ -2,10 +2,10 @@ import "server-only";
 import { supabaseAdmin, PHOTOS_BUCKET } from "@/lib/supabase-admin";
 
 /**
- * Apaga permanentemente fotos + eventos cujo expires_at já passou.
- * A regra de "ninguém vê depois de expirado" já é garantida pelo gate de
- * fase (reveal.ts) mesmo antes deste job rodar — isso aqui é só a limpeza
- * física do Storage/banco, por privacidade e custo.
+ * Permanently deletes photos + events whose expires_at has passed.
+ * The "nobody sees anything after it expires" rule is already enforced by the
+ * phase gate (reveal.ts) even before this job runs — this is only the physical
+ * cleanup of Storage/database, for privacy and cost.
  */
 export async function purgeExpiredEvents(): Promise<{ purgedSlugs: string[] }> {
   const nowIso = new Date().toISOString();

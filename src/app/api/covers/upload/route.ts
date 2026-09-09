@@ -14,25 +14,25 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Faça login para enviar uma capa." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to upload a cover." }, { status: 401 });
   }
 
   let form: FormData;
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Upload inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
   }
 
   const file = form.get("file");
   if (!(file instanceof Blob)) {
-    return NextResponse.json({ error: "Arquivo ausente." }, { status: 400 });
+    return NextResponse.json({ error: "File is missing." }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: "Imagem muito grande (máximo 20MB)." }, { status: 400 });
+    return NextResponse.json({ error: "That image is too large (20MB max)." }, { status: 400 });
   }
   if (!file.type.startsWith("image/")) {
-    return NextResponse.json({ error: "O arquivo precisa ser uma imagem." }, { status: 400 });
+    return NextResponse.json({ error: "The file has to be an image." }, { status: 400 });
   }
 
   const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: "Falha ao enviar a imagem." }, { status: 500 });
+    return NextResponse.json({ error: "We could not upload that image." }, { status: 500 });
   }
 
   const { data: publicUrlData } = supabaseAdmin.storage.from(COVERS_BUCKET).getPublicUrl(path);

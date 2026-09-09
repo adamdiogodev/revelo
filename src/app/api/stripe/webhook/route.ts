@@ -23,8 +23,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 export async function POST(req: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET não configurado.");
-    return NextResponse.json({ error: "Webhook não configurado." }, { status: 500 });
+    console.error("STRIPE_WEBHOOK_SECRET is not configured.");
+    return NextResponse.json({ error: "Webhook is not configured." }, { status: 500 });
   }
 
   const signature = req.headers.get("stripe-signature");
@@ -38,12 +38,12 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch (err) {
-    console.error("Assinatura do webhook Stripe inválida:", err);
-    return NextResponse.json({ error: "Assinatura inválida." }, { status: 400 });
+    console.error("Invalid Stripe webhook signature:", err);
+    return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
   }
 
-  // Sempre responde 200 pro Stripe, mesmo se não reconhecermos o pagamento
-  // (ex.: testes de webhook do próprio painel) — só logamos o erro.
+  // Always answer 200 to Stripe, even if we do not recognize the payment (their
+  // dashboard webhook tests, for example) — we just log the error.
   try {
     if (
       event.type === "checkout.session.completed" ||
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
     }
   } catch (err) {
-    console.error("Erro processando webhook do Stripe:", err);
+    console.error("Error processing Stripe webhook:", err);
   }
 
   return NextResponse.json({ received: true });

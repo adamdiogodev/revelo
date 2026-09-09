@@ -15,21 +15,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Faça login como anfitrião." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in as the host." }, { status: 401 });
   }
 
   const event = await getEventForHost(slug, user.id);
   if (!event) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
   const payment = await getLatestPaymentForEvent(event.id);
   if (!payment || payment.status !== "pendente") {
-    return NextResponse.json({ error: "Não há pagamento pendente para este evento." }, { status: 400 });
+    return NextResponse.json({ error: "There is no pending payment for this party." }, { status: 400 });
   }
 
-  // Retoma com o MESMO provedor com que o pagamento nasceu, não o que
-  // estiver ativo agora — evita misturar gateway no meio de uma cobrança.
+  // Resume with the SAME provider the payment started on, not whichever one is
+  // active now — that avoids mixing gateways in the middle of a charge.
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin;
   const checkout = await createCheckout({
     provider: payment.provider,

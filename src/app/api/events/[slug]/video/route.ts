@@ -31,27 +31,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
   const { photoIds } = body as { photoIds?: string[] };
   if (!Array.isArray(photoIds) || photoIds.length === 0) {
-    return NextResponse.json({ error: "Selecione pelo menos 1 foto." }, { status: 400 });
+    return NextResponse.json({ error: "Pick at least 1 photo." }, { status: 400 });
   }
   if (photoIds.length > MAX_PHOTOS) {
-    return NextResponse.json({ error: `Selecione no máximo ${MAX_PHOTOS} fotos.` }, { status: 400 });
+    return NextResponse.json({ error: `Pick at most ${MAX_PHOTOS} photos.` }, { status: 400 });
   }
 
   const event = await getEventRowBySlug(slug);
   if (!event) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
-  // Nunca gera vídeo com fotos antes da revelação — mesma regra de sempre,
-  // calculada a partir do relógio do servidor.
+  // Never build a video from photos before the reveal — same rule as always,
+  // computed from the server clock.
   const fase = computeFase(event, new Date());
   if (fase !== "revelada") {
-    return NextResponse.json({ error: "O vídeo só pode ser gerado após a revelação." }, { status: 403 });
+    return NextResponse.json({ error: "The video can only be built after the reveal." }, { status: 403 });
   }
 
   try {
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
       },
     });
   } catch (err) {
-    console.error("Erro gerando vídeo:", err);
-    return NextResponse.json({ error: "Falha ao gerar o vídeo. Tente novamente." }, { status: 500 });
+    console.error("Error building video:", err);
+    return NextResponse.json({ error: "We could not build the video. Please try again." }, { status: 500 });
   }
 }

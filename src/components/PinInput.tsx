@@ -62,8 +62,10 @@ export default function PinInput({
           onChange={(e) => setDigit(i, e.target.value.replace(/\D/g, "").slice(-1))}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={handlePaste}
-          className={`h-14 w-12 rounded-xl border bg-bg-raised text-center font-display text-2xl italic text-ink focus:outline-none ${
-            error ? "border-danger" : "border-ink/15 focus:border-accent"
+          className={`h-16 w-14 rounded-2xl border bg-[rgba(247,240,237,0.05)] text-center font-display text-3xl italic text-ink transition-colors focus:outline-none ${
+            error
+              ? "border-danger"
+              : "border-[var(--color-line)] focus:border-accent focus:shadow-[0_0_0_3px_rgba(230,57,78,0.16)]"
           }`}
         />
       ))}

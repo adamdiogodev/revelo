@@ -26,7 +26,7 @@ async function generateUniqueSlug(nome: string): Promise<string> {
     if (!data) return candidate;
   }
 
-  throw new Error("Não foi possível gerar um link único para o evento. Tente outro nome.");
+  throw new Error("We could not generate a unique link for this party. Try another name.");
 }
 
 export type CreateEventInput = {
@@ -45,7 +45,7 @@ export async function createEvent(
 ): Promise<{ slug: string; codigoAcesso: string; eventId: string }> {
   const slug = await generateUniqueSlug(input.nome);
   const codigoAcesso = generateCodigoAcesso();
-  const expiresAt = new Date(input.revealAt.getTime() + 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(input.revealAt.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   const { data: event, error } = await supabaseAdmin
     .from("events")
@@ -163,7 +163,7 @@ export async function updateEventSettings(
   if (error) throw new Error(error.message);
 }
 
-/** Evento + verificação de posse: só retorna algo se o evento pertencer a este anfitrião logado. */
+/** Event + ownership check: only returns something if the event belongs to this signed-in host. */
 export async function getEventForHost(slug: string, hostUserId: string): Promise<EventRow | null> {
   const { data, error } = await supabaseAdmin
     .from("events")

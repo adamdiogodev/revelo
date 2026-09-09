@@ -20,12 +20,13 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Revelo — Câmera Descartável de Festa",
-  description: "Câmera descartável digital para festas — fotos reveladas só na hora marcada.",
+  title: "Revelo — The Disposable Party Camera",
+  description:
+    "A digital disposable camera for parties — photos stay hidden until the moment you set.",
 };
 
 export const viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0a0507",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -38,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="pt-BR"
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-bg text-ink">{children}</body>

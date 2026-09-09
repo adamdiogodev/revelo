@@ -10,17 +10,14 @@ export default function SignOutButton() {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/entrar");
+    router.push("/login");
     router.refresh();
   }
 
   return (
-    <button
-      onClick={handleSignOut}
-      className="flex items-center gap-1.5 rounded-full bg-bg-raised px-3.5 py-2 text-sm text-ink/80"
-    >
-      <LogOut size={14} />
-      Sair
+    <button onClick={handleSignOut} className="badge px-3 py-2 text-ink/80">
+      <LogOut size={13} />
+      Sign out
     </button>
   );
 }

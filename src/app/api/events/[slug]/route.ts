@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const info = await getPublicEventBySlug(slug);
 
   if (!info) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   return NextResponse.json(info);
@@ -29,17 +29,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Faça login como anfitrião." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in as the host." }, { status: 401 });
   }
 
   const event = await getEventForHost(slug, user.id);
   if (!event) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Corpo inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid body." }, { status: 400 });
   }
 
   const updates: { capaUrl?: string | null; posesPorConvidado?: number } = {};
@@ -54,11 +54,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/covers/`
       );
       if (!isPreset && !isUploaded) {
-        return NextResponse.json({ error: "Capa inválida." }, { status: 400 });
+        return NextResponse.json({ error: "Invalid cover." }, { status: 400 });
       }
       updates.capaUrl = capaUrl;
     } else {
-      return NextResponse.json({ error: "Capa inválida." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid cover." }, { status: 400 });
     }
   }
 
@@ -66,13 +66,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ sl
     const fase = computeFase(event, new Date());
     if (fase !== "captura") {
       return NextResponse.json(
-        { error: "Só dá para mudar as poses antes da revelação." },
+        { error: "Shots can only be changed before the reveal." },
         { status: 400 }
       );
     }
     const poses = body.posesPorConvidado;
     if (typeof poses !== "number" || !POSES_OPCOES.includes(poses)) {
-      return NextResponse.json({ error: "Número de poses inválido." }, { status: 400 });
+      return NextResponse.json({ error: "That number of shots is not valid." }, { status: 400 });
     }
     updates.posesPorConvidado = poses;
   }

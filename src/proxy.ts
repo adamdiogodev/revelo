@@ -21,8 +21,8 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Renova o token de sessão do anfitrião a cada request (necessário para o
-  // padrão SSR do Supabase Auth funcionar em Server Components).
+  // Refreshes the host session token on every request (required for the Supabase
+  // Auth SSR pattern to work inside Server Components).
   await supabase.auth.getUser();
 
   return response;

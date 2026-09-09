@@ -73,10 +73,10 @@ function drawTimestamp(ctx: CanvasRenderingContext2D, w: number, h: number) {
 }
 
 /**
- * Captura o frame atual do vídeo aplicando o filtro escolhido (o mesmo
- * exibido ao vivo no viewfinder) e retorna um JPEG comprimido pronto para
- * upload — tudo isso antes de qualquer envio, já que ninguém (nem o autor)
- * pode ver a foto crua.
+ * Captures the current video frame with the chosen filter applied (the same one
+ * shown live in the viewfinder) and returns a compressed JPEG ready to upload —
+ * all of it before anything is sent, since nobody (not even the author) gets to
+ * see the raw photo.
  */
 export function captureFilteredJpeg(
   video: HTMLVideoElement,
@@ -98,7 +98,7 @@ export function captureFilteredJpeg(
   canvas.width = outW;
   canvas.height = outH;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return Promise.reject(new Error("Canvas indisponível"));
+  if (!ctx) return Promise.reject(new Error("Canvas unavailable"));
 
   ctx.save();
   if (mirror) {

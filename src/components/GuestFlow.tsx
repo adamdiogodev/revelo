@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Film, Camera as CameraIcon, Lock } from "lucide-react";
 import Camera from "@/components/Camera";
 import RevealExperience from "@/components/RevealExperience";
+import CoverBackground from "@/components/CoverBackground";
 import PinInput from "@/components/PinInput";
 import Modal from "@/components/Modal";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
@@ -75,8 +76,8 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
-  // Fica de olho na fase do evento enquanto o convidado está na tela de espera/câmera,
-  // porque o horário de revelação é decidido pelo servidor, não pelo relógio do celular.
+  // Keep an eye on the event phase while the guest waits or shoots, because the
+  // reveal time is decided by the server, not by the phone's clock.
   useEffect(() => {
     if (step !== "camera") return;
     const id = setInterval(() => {
@@ -130,7 +131,7 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
       testStream.getTracks().forEach((t) => t.stop());
     } catch {
       setErrorMsg(
-        "Precisamos da sua câmera para continuar. Verifique a permissão do navegador e tente de novo."
+        "We need your camera to continue. Check your browser permission and try again."
       );
       setStep("entry");
       return;
@@ -143,8 +144,8 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
         body: JSON.stringify({ nome: nome.trim(), codigo }),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: "Erro ao entrar." }));
-        setErrorMsg(data.error || "Erro ao entrar.");
+        const data = await res.json().catch(() => ({ error: "We could not let you in." }));
+        setErrorMsg(data.error || "We could not let you in.");
         setStep("entry");
         return;
       }
@@ -158,20 +159,20 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
       setStep("camera");
       setWelcomeOpen(true);
     } catch {
-      setErrorMsg("Sem conexão. Tente de novo.");
+      setErrorMsg("No connection. Try again.");
       setStep("entry");
     }
   }
 
   if (step === "loading") {
-    return <CenterMessage>carregando…</CenterMessage>;
+    return <CenterMessage>loading…</CenterMessage>;
   }
 
   if (step === "expirada") {
     return (
-      <CenterMessage icon={<Film size={28} />}>
-        <p className="font-display text-xl italic text-ink">Esse rolê já virou lembrança.</p>
-        <p className="mt-2 text-muted">As fotos foram apagadas.</p>
+      <CenterMessage icon={<Film size={26} />}>
+        <p className="font-display text-xl italic text-ink">This one is a memory now.</p>
+        <p className="mt-2 text-muted">The photos have been deleted.</p>
       </CenterMessage>
     );
   }
@@ -197,33 +198,29 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
           onRevelacaoIniciada={() => setStep("revelada")}
         />
         {semPosesOpen && (
-          <Modal icon={<Film size={28} />}>
-            <p className="font-display text-xl italic text-ink">Fim do filme!</p>
-            <p className="mt-2 text-muted">Suas poses acabaram, {nome}.</p>
-            <p className="mt-6 font-display text-3xl italic tabular-nums text-accent">
+          <Modal icon={<Film size={26} />}>
+            <p className="font-display text-xl italic text-ink">End of the roll!</p>
+            <p className="mt-2 text-muted">You are out of shots, {nome}.</p>
+            <p className="mt-6 font-display text-3xl italic tabular-nums text-accent-soft">
               {formatCountdown(msAteRevelacao)}
             </p>
-            <p className="text-xs uppercase tracking-widest text-muted">até a revelação</p>
+            <p className="label-caps mt-1">until the reveal</p>
             <p className="mt-4 text-sm text-muted">
-              {event.totalFotos} foto{event.totalFotos === 1 ? "" : "s"} tiradas pelo grupo até
-              agora
+              {event.totalFotos} photo{event.totalFotos === 1 ? "" : "s"} taken by the group so far
             </p>
           </Modal>
         )}
         {welcomeOpen && !semPosesOpen && (
-          <Modal icon={<CameraIcon size={26} />}>
+          <Modal icon={<CameraIcon size={24} />}>
             <p className="font-display text-xl italic text-ink">
-              Você tem {event.posesPorConvidado - posesUsadas} poses, {nome}!
+              You have {event.posesPorConvidado - posesUsadas} shots, {nome}!
             </p>
-            <p className="mt-3 text-sm text-muted">
-              Não precisa tirar tudo de uma vez — pode fechar essa página e voltar quando quiser,
-              suas poses continuam salvas até a revelação.
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              No rush — you can close this page and come back whenever you like. Your shots stay
+              saved until the reveal.
             </p>
-            <button
-              onClick={() => setWelcomeOpen(false)}
-              className="mt-5 w-full rounded-full bg-ink py-2.5 text-sm font-semibold text-bg"
-            >
-              Vamos lá!
+            <button onClick={() => setWelcomeOpen(false)} className="btn btn-primary mt-5 w-full py-2.5 text-sm">
+              Let&apos;s go
             </button>
           </Modal>
         )}
@@ -233,81 +230,92 @@ export default function GuestFlow({ initialEvent }: { initialEvent: PublicEventI
 
   if (step === "codigo") {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-8 bg-bg px-6 text-center text-ink">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-raised text-accent">
-          <Lock size={22} />
+      <div className="relative flex h-dvh flex-col items-center justify-center gap-7 px-6 text-center">
+        <div className="ambient" />
+        <CoverBackground url={event.capaUrl} />
+
+        <div className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent-soft">
+          <Lock size={20} />
         </div>
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-muted">{event.nome}</p>
-          <h1 className="mt-2 font-display text-3xl italic text-ink">Qual é o código?</h1>
+        <div className="relative z-10">
+          <p className="label-caps">{event.nome}</p>
+          <h1 className="mt-2 font-display text-3xl italic text-ink">What is the code?</h1>
           <p className="mx-auto mt-3 max-w-xs text-sm text-muted">
-            Peça o código de 4 dígitos para quem está organizando a festa.
+            Ask whoever is throwing the party for the 4-digit code.
           </p>
         </div>
 
-        <PinInput
-          value={codigo}
-          onChange={(v) => {
-            setCodigo(v);
-            setCodigoError(false);
-          }}
-          onComplete={handleCodigoComplete}
-          error={codigoError}
-        />
+        <div className="relative z-10">
+          <PinInput
+            value={codigo}
+            onChange={(v) => {
+              setCodigo(v);
+              setCodigoError(false);
+            }}
+            onComplete={handleCodigoComplete}
+            error={codigoError}
+          />
+        </div>
 
-        {verificandoCodigo && <p className="text-sm text-muted">verificando…</p>}
-        {codigoError && <p className="text-sm text-danger">Código incorreto. Tente de novo.</p>}
+        {verificandoCodigo && <p className="relative z-10 text-sm text-muted">checking…</p>}
+        {codigoError && (
+          <p className="relative z-10 text-sm text-danger">Wrong code. Give it another go.</p>
+        )}
       </div>
     );
   }
 
   // entry / requesting-camera
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-8 bg-bg px-6 text-center text-ink">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-muted">você foi convidado(a) para</p>
-        <h1 className="mt-2 font-display text-4xl italic text-ink">{event.nome}</h1>
-        <p className="mx-auto mt-4 max-w-xs text-sm text-muted">
-          Você terá <strong className="text-ink">{event.posesPorConvidado} poses</strong>. Ninguém
-          vê nada até a revelação — nem você.
-        </p>
-      </div>
+    <div className="relative flex h-dvh flex-col justify-end overflow-hidden">
+      <div className="ambient" />
+      <CoverBackground url={event.capaUrl} />
 
-      <form onSubmit={handleEntrySubmit} className="w-full max-w-xs">
-        <label className="block text-left text-xs uppercase tracking-widest text-muted">
-          Como você se chama?
-        </label>
-        <input
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          placeholder="Seu primeiro nome"
-          maxLength={40}
-          className="mt-2 w-full rounded-xl border border-ink/15 bg-bg-raised px-4 py-3 text-lg text-ink placeholder:text-muted focus:border-accent focus:outline-none"
-          autoFocus
-        />
-        {errorMsg && <p className="mt-2 text-sm text-danger">{errorMsg}</p>}
-        <button
-          type="submit"
-          disabled={step === "requesting-camera" || !nome.trim()}
-          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3.5 text-base font-semibold text-bg transition-opacity disabled:opacity-40"
-        >
-          <CameraIcon size={18} />
-          {step === "requesting-camera" ? "Pedindo acesso à câmera…" : "Pegar minha câmera"}
-        </button>
-      </form>
+      <div className="relative z-10 mx-auto w-full max-w-md px-6 pb-[max(2rem,env(safe-area-inset-bottom))] pt-10 animate-[riseIn_500ms_ease-out]">
+        <p className="label-caps">you are invited to</p>
+        <h1 className="mt-2 font-display text-[2.5rem] italic leading-[1.05] text-ink">
+          {event.nome}
+        </h1>
+        <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-muted">
+          You get <strong className="text-ink">{event.posesPorConvidado} shots</strong>. Nobody sees
+          a thing until the reveal — not even you.
+        </p>
+
+        <form onSubmit={handleEntrySubmit} className="mt-8">
+          <label className="label-caps block text-left">What should we call you?</label>
+          <input
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Your first name"
+            maxLength={40}
+            className="field mt-2.5 py-4 text-lg"
+            autoFocus
+          />
+          {errorMsg && <p className="mt-2 text-sm text-danger">{errorMsg}</p>}
+          <button
+            type="submit"
+            disabled={step === "requesting-camera" || !nome.trim()}
+            className="btn btn-primary mt-5 w-full"
+          >
+            <CameraIcon size={18} />
+            {step === "requesting-camera" ? "Asking for camera access…" : "Grab my camera"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
 
 function CenterMessage({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-2 bg-bg px-6 text-center text-ink">
+    <div className="relative flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
+      <div className="ambient" />
       {icon && (
-        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-raised text-ink/70">
+        <div className="relative z-10 mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(247,240,237,0.06)] text-muted">
           {icon}
         </div>
       )}
-      {children}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }

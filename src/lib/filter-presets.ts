@@ -1,7 +1,7 @@
 export type FilterPreset = {
   id: string;
   nome: string;
-  /** aplicado ao vivo no <video> e "queimado" na foto final via canvas */
+  /** applied live on the <video> and burned into the final photo via canvas */
   cssFilter: string;
   grainOpacity: number;
   vignetteStrength: number;
@@ -9,8 +9,8 @@ export type FilterPreset = {
 
 export const FILTER_PRESETS: FilterPreset[] = [
   {
-    id: "classico",
-    nome: "Clássico",
+    id: "classic",
+    nome: "Classic",
     cssFilter: "saturate(65%) contrast(108%) brightness(103%) sepia(8%)",
     grainOpacity: 0.06,
     vignetteStrength: 1,
@@ -23,8 +23,8 @@ export const FILTER_PRESETS: FilterPreset[] = [
     vignetteStrength: 0.8,
   },
   {
-    id: "pb",
-    nome: "P&B",
+    id: "bw",
+    nome: "B&W",
     cssFilter: "grayscale(100%) contrast(115%) brightness(102%)",
     grainOpacity: 0.08,
     vignetteStrength: 1,
@@ -44,6 +44,6 @@ export function getFilterPreset(id: string): FilterPreset {
   return FILTER_PRESETS.find((f) => f.id === id) || FILTER_PRESETS[0];
 }
 
-/** data-URI de ruído/grão via SVG feTurbulence — reutilizado no preview ao vivo (CSS) */
+/** noise/grain data-URI via SVG feTurbulence — reused by the live preview (CSS) */
 export const GRAIN_SVG_URL =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";

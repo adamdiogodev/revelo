@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ slu
   const payload = await getRevealPayload(slug);
 
   if (!payload) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   return NextResponse.json(payload);

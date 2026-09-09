@@ -11,17 +11,17 @@ export default async function HostPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ created?: string; pago?: string }>;
+  searchParams: Promise<{ created?: string; paid?: string }>;
 }) {
   const { slug } = await params;
-  const { created, pago } = await searchParams;
+  const { created, paid } = await searchParams;
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/entrar");
+  if (!user) redirect("/login");
 
   const event = await getEventForHost(slug, user.id);
   if (!event) notFound();
@@ -41,7 +41,7 @@ export default async function HostPage({
           ? { maxConvidados: payment.max_convidados, valorCentavos: payment.valor_centavos }
           : null
       }
-      pagoStatus={pago}
+      paidStatus={paid}
     />
   );
 }

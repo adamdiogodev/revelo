@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   if (secret) {
     const auth = req.headers.get("authorization");
     if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+      return NextResponse.json({ error: "Not authorized." }, { status: 401 });
     }
   }
 

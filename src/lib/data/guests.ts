@@ -9,7 +9,7 @@ export async function createGuest(eventId: string, nome: string): Promise<GuestR
     .select("*")
     .single();
 
-  if (error || !data) throw new Error(error?.message || "Falha ao entrar no evento.");
+  if (error || !data) throw new Error(error?.message || "We could not join you to this party.");
   return data as GuestRow;
 }
 
@@ -35,7 +35,7 @@ export async function getGuestByToken(eventId: string, guestToken: string): Prom
   return data as GuestRow | null;
 }
 
-/** IDs de desafios que este convidado já tentou pelo menos uma vez (para marcar ✔️ no carrossel). */
+/** Challenge ids this guest has attempted at least once (used for the ✔️ in the carousel). */
 export async function getGuestCompletedChallengeIds(guestId: string): Promise<string[]> {
   const { data, error } = await supabaseAdmin
     .from("photos")

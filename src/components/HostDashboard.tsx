@@ -1,38 +1,50 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { Check, Copy, Download, Film, MessageCircle, CreditCard, Pencil, Upload, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Copy,
+  Download,
+  Film,
+  MessageCircle,
+  CreditCard,
+  Pencil,
+  Upload,
+  Users,
+  Images,
+  X,
+} from "lucide-react";
 import { useCountdown, formatCountdown } from "@/lib/use-countdown";
-import { formatBRL, formatConvidados } from "@/lib/pricing";
+import { formatPrice, formatGuestLimit } from "@/lib/pricing";
 import { COVER_PRESETS } from "@/lib/cover-presets";
 import RevealExperience from "@/components/RevealExperience";
 import CoverBackground from "@/components/CoverBackground";
 import type { PublicEventInfo } from "@/lib/types";
 
 type PendingPayment = { maxConvidados: number; valorCentavos: number };
-const POSES_OPCOES = [12, 18, 24];
+const SHOT_OPTIONS = [12, 18, 24];
 
 export default function HostDashboard({
   event: initialEvent,
   codigoAcesso,
   justCreated,
   pendingPayment,
-  pagoStatus,
+  paidStatus,
 }: {
   event: PublicEventInfo;
   codigoAcesso: string;
   justCreated: boolean;
   pendingPayment: PendingPayment | null;
-  pagoStatus?: string;
+  paidStatus?: string;
 }) {
   const router = useRouter();
   const [event, setEvent] = useState(initialEvent);
   const [copied, setCopied] = useState(false);
-  const [siteUrl, setSiteUrl] = useState(
-    process.env.NEXT_PUBLIC_SITE_URL || ""
-  );
+  const [siteUrl, setSiteUrl] = useState(process.env.NEXT_PUBLIC_SITE_URL || "");
   const [payingLoading, setPayingLoading] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -61,18 +73,18 @@ export default function HostDashboard({
     return () => clearInterval(id);
   }, [event.slug]);
 
-  // Se voltou do Stripe com sucesso mas o webhook ainda não confirmou,
-  // fica atualizando a página por alguns segundos até liberar.
+  // If the host came back from checkout successfully but the webhook has not
+  // confirmed yet, keep refreshing for a few seconds until the plan unlocks.
   useEffect(() => {
-    if (pagoStatus !== "sucesso" || !pendingPayment) return;
-    let tentativas = 0;
+    if (paidStatus !== "success" || !pendingPayment) return;
+    let attempts = 0;
     const id = setInterval(() => {
-      tentativas += 1;
+      attempts += 1;
       router.refresh();
-      if (tentativas >= 10) clearInterval(id);
+      if (attempts >= 10) clearInterval(id);
     }, 3000);
     return () => clearInterval(id);
-  }, [pagoStatus, pendingPayment, router]);
+  }, [paidStatus, pendingPayment, router]);
 
   const guestUrl = siteUrl ? `${siteUrl}/${event.slug}` : `/${event.slug}`;
 
@@ -86,7 +98,7 @@ export default function HostDashboard({
   }
 
   function shareWhatsApp() {
-    const text = `📸 Bora tirar fotos em ${event.nome}! Entre aqui: ${guestUrl}\nCódigo de entrada: ${codigoAcesso}`;
+    const text = `📸 Come shoot with us at ${event.nome}! Join here: ${guestUrl}\nEntry code: ${codigoAcesso}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
@@ -99,7 +111,7 @@ export default function HostDashboard({
     link.click();
   }
 
-  async function handleFinalizarPagamento() {
+  async function handleFinishPayment() {
     setPayingLoading(true);
     try {
       const res = await fetch(`/api/events/${event.slug}/checkout`, { method: "POST" });
@@ -133,12 +145,12 @@ export default function HostDashboard({
       const res = await fetch("/api/covers/upload", { method: "POST", body: form });
       const data = await res.json();
       if (!res.ok) {
-        setCapaError(data.error || "Falha ao enviar a imagem.");
+        setCapaError(data.error || "We could not upload that image.");
         return;
       }
       setEditCapaUrl(data.url);
     } catch {
-      setCapaError("Sem conexão. Tente de novo.");
+      setCapaError("No connection. Try again.");
     } finally {
       setCapaUploading(false);
       e.target.value = "";
@@ -156,13 +168,13 @@ export default function HostDashboard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setSaveError(data.error || "Falha ao salvar.");
+        setSaveError(data.error || "We could not save your changes.");
         return;
       }
       setEvent(data);
       setEditing(false);
     } catch {
-      setSaveError("Sem conexão. Tente de novo.");
+      setSaveError("No connection. Try again.");
     } finally {
       setSaving(false);
     }
@@ -174,165 +186,173 @@ export default function HostDashboard({
 
   if (event.fase === "expirada") {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-2 bg-bg px-6 text-center text-ink">
-        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-raised text-ink/70">
-          <Film size={26} />
+      <div className="relative flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
+        <div className="ambient" />
+        <div className="relative z-10 mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(247,240,237,0.06)] text-muted">
+          <Film size={24} />
         </div>
-        <p className="font-display text-xl italic">Esse rolê já virou lembrança.</p>
-        <p className="mt-2 text-muted">As fotos foram apagadas.</p>
+        <p className="relative z-10 font-display text-xl italic">This one is a memory now.</p>
+        <p className="relative z-10 mt-2 text-muted">The photos have been deleted.</p>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-dvh px-6 py-10 text-ink">
+    <div className="relative min-h-dvh">
+      <div className="ambient" />
       <CoverBackground url={event.capaUrl} />
-      <div className="relative z-10 mx-auto max-w-md space-y-8">
-        <div className="relative text-center">
-          <p className="text-xs uppercase tracking-[0.2em] text-muted">painel do anfitrião</p>
-          <h1 className="mt-2 font-display text-3xl italic text-ink">{event.nome}</h1>
+
+      <div className="relative z-10 mx-auto w-full max-w-md space-y-3 px-5 pb-12 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <header className="flex items-center justify-between">
+          <Link href="/dashboard" aria-label="Back to your parties" className="icon-btn h-9 w-9">
+            <ChevronLeft size={18} />
+          </Link>
+          <p className="label-caps">host panel</p>
           <button
             onClick={openEditor}
-            className="absolute right-0 top-0 flex h-9 w-9 items-center justify-center rounded-full bg-bg-raised text-ink/70"
-            aria-label="Editar capa e poses"
+            className="icon-btn h-9 w-9"
+            aria-label="Edit cover and shots"
           >
-            <Pencil size={16} />
+            <Pencil size={15} />
           </button>
+        </header>
+
+        <div className="pb-2 pt-4 text-center">
+          <h1 className="font-display text-[2rem] italic leading-tight text-ink">{event.nome}</h1>
+          <p className="mt-1.5 text-sm text-muted">
+            {event.posesPorConvidado} shots per guest · sealed until reveal
+          </p>
         </div>
 
         {pendingPayment && (
-          <div className="rounded-2xl border border-danger/40 bg-danger/10 p-5 text-center">
+          <div className="card border-danger/40 bg-danger/10 p-5 text-center">
             <p className="font-medium text-ink">
-              {pagoStatus === "sucesso" ? "Confirmando seu pagamento…" : "Pagamento pendente"}
+              {paidStatus === "success" ? "Confirming your payment…" : "Payment pending"}
             </p>
             <p className="mt-1 text-sm text-muted">
-              Plano de até {formatConvidados(pendingPayment.maxConvidados)} convidados —{" "}
-              {formatBRL(pendingPayment.valorCentavos)}
+              Plan for up to {formatGuestLimit(pendingPayment.maxConvidados)} guests —{" "}
+              {formatPrice(pendingPayment.valorCentavos)}
             </p>
-            {pagoStatus === "sucesso" ? (
-              <p className="mt-3 text-xs text-muted">Isso costuma levar só alguns segundos.</p>
+            {paidStatus === "success" ? (
+              <p className="mt-3 text-xs text-muted">This usually takes just a few seconds.</p>
             ) : (
               <button
-                onClick={handleFinalizarPagamento}
+                onClick={handleFinishPayment}
                 disabled={payingLoading}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-semibold text-bg disabled:opacity-50"
+                className="btn btn-primary mt-4 w-full py-2.5 text-sm"
               >
                 <CreditCard size={16} />
-                {payingLoading ? "Abrindo pagamento…" : "Finalizar pagamento"}
+                {payingLoading ? "Opening checkout…" : "Finish payment"}
               </button>
             )}
           </div>
         )}
 
-        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5 text-center">
-          <p className="mb-4 font-medium text-ink">
-            {justCreated ? "Convide seus convidados" : "QR code do evento"}
+        <div className="card p-6 text-center">
+          <p className="label-caps">develops in</p>
+          <p className="mt-2 font-display text-[2.75rem] italic leading-none tabular-nums text-accent-soft">
+            {revealMs > 0 ? formatCountdown(revealMs) : "developing…"}
           </p>
-          <div className="flex justify-center rounded-xl bg-ink p-4">
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="card p-4">
+            <Users size={16} className="text-muted" />
+            <p className="mt-3 font-display text-3xl italic leading-none text-ink">
+              {event.totalConvidados}
+              <span className="text-base text-muted">/{formatGuestLimit(event.maxConvidados)}</span>
+            </p>
+            <p className="mt-1.5 text-xs text-muted">guests joined</p>
+          </div>
+          <div className="card p-4">
+            <Images size={16} className="text-muted" />
+            <p className="mt-3 font-display text-3xl italic leading-none text-ink">
+              {event.totalFotos}
+            </p>
+            <p className="mt-1.5 text-xs text-muted">shots taken</p>
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <p className="text-center font-medium text-ink">
+            {justCreated ? "Invite your guests" : "Party QR code"}
+          </p>
+
+          <div className="mt-4 flex justify-center rounded-2xl bg-ink p-4">
             <QRCodeCanvas ref={qrCanvasRef} value={guestUrl} size={200} />
           </div>
 
-          <div className="mt-4 flex items-center gap-2 rounded-lg bg-bg-raised px-3 py-2 text-sm">
+          <div className="card-flat mt-3 flex items-center gap-2 px-3 py-2.5 text-sm">
             <span className="flex-1 truncate text-left text-ink/80">{guestUrl}</span>
-            <button onClick={copyLink} className="flex items-center gap-1 font-medium text-accent">
+            <button
+              onClick={copyLink}
+              className="flex items-center gap-1 font-medium text-accent-soft"
+            >
               {copied ? <Check size={14} /> : <Copy size={14} />}
-              {copied ? "copiado" : "copiar"}
+              {copied ? "copied" : "copy"}
             </button>
           </div>
 
           <div className="mt-3 flex gap-2">
-            <button
-              onClick={shareWhatsApp}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink py-2.5 text-sm font-semibold text-bg"
-            >
+            <button onClick={shareWhatsApp} className="btn btn-primary flex-1 py-2.5 text-sm">
               <MessageCircle size={16} />
               WhatsApp
             </button>
-            <button
-              onClick={downloadQrCode}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-bg-raised py-2.5 text-sm font-semibold text-ink"
-            >
+            <button onClick={downloadQrCode} className="btn btn-ghost flex-1 py-2.5 text-sm">
               <Download size={16} />
-              Baixar QR
+              Save QR
             </button>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-ink/10 bg-bg-raised p-5 text-center">
-          <p className="text-xs uppercase tracking-widest text-muted">Código de entrada</p>
-          <p className="mt-2 flex justify-center gap-2">
+        <div className="card p-5 text-center">
+          <p className="label-caps">entry code</p>
+          <div className="mt-3 flex justify-center gap-2">
             {codigoAcesso.split("").map((d, i) => (
               <span
                 key={i}
-                className="flex h-12 w-10 items-center justify-center rounded-lg bg-bg font-display text-2xl italic text-accent"
+                className="flex h-14 w-12 items-center justify-center rounded-xl border border-[var(--color-line)] bg-[rgba(10,5,7,0.6)] font-display text-2xl italic text-accent-soft"
               >
                 {d}
               </span>
             ))}
-          </p>
-          <p className="mt-3 text-xs text-muted">
-            Compartilhe com seus convidados por fora do link — sem o código, ninguém entra.
+          </div>
+          <p className="mt-3 text-xs leading-snug text-muted">
+            Share it with your guests separately — without the code, nobody gets in.
           </p>
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-ink/10 bg-bg-raised p-5">
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-widest text-muted">Revelação em</p>
-            <p className="mt-1 font-display text-4xl italic tabular-nums text-accent">
-              {revealMs > 0 ? formatCountdown(revealMs) : "revelando…"}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 text-center">
-            <div className="rounded-xl bg-bg p-3">
-              <p className="font-display text-2xl italic">
-                {event.totalConvidados}
-                <span className="text-base text-muted">/{formatConvidados(event.maxConvidados)}</span>
-              </p>
-              <p className="text-xs text-muted">convidados</p>
-            </div>
-            <div className="rounded-xl bg-bg p-3">
-              <p className="font-display text-2xl italic">{event.totalFotos}</p>
-              <p className="text-xs text-muted">fotos tiradas</p>
-            </div>
-          </div>
-
-          {event.modoDesafios && event.challenges.length > 0 && (
-            <p className="text-center text-sm text-muted">
-              Modo desafios ativo · {event.challenges.length} desafios disponíveis
-            </p>
-          )}
-        </div>
+        {event.modoDesafios && event.challenges.length > 0 && (
+          <p className="pt-1 text-center text-sm text-muted">
+            Challenge Mode is on · {event.challenges.length} challenges available
+          </p>
+        )}
       </div>
 
       {editing && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center">
-          <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl bg-bg-raised p-5 text-ink">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-3 backdrop-blur-sm sm:items-center">
+          <div className="card max-h-[88vh] w-full max-w-md overflow-y-auto p-5 text-ink animate-[riseIn_260ms_ease-out]">
             <div className="flex items-center justify-between">
-              <p className="font-display text-xl italic">Editar evento</p>
-              <button
-                onClick={() => setEditing(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-bg text-ink/70"
-                aria-label="Fechar"
-              >
-                <X size={16} />
+              <p className="font-display text-xl italic">Edit party</p>
+              <button onClick={() => setEditing(false)} className="icon-btn h-8 w-8" aria-label="Close">
+                <X size={15} />
               </button>
             </div>
 
-            <p className="mt-6 text-sm font-medium text-muted">Capa</p>
+            <p className="label-caps mt-6">Cover</p>
             <div className="mt-3 grid grid-cols-4 gap-2">
               {COVER_PRESETS.map((preset) => (
                 <button
                   key={preset.id}
                   onClick={() => setEditCapaUrl(preset.url)}
-                  className={`relative aspect-[9/16] overflow-hidden rounded-lg border-2 ${
+                  className={`relative aspect-[9/16] overflow-hidden rounded-xl border-2 ${
                     editCapaUrl === preset.url ? "border-accent" : "border-transparent"
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={preset.url} alt="" className="h-full w-full object-cover" />
                   {editCapaUrl === preset.url && (
-                    <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-ink">
+                    <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white">
                       <Check size={12} />
                     </span>
                   )}
@@ -350,23 +370,23 @@ export default function HostDashboard({
             <button
               onClick={() => editFileInputRef.current?.click()}
               disabled={capaUploading}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-ink/15 bg-bg py-2.5 text-sm font-semibold text-ink disabled:opacity-50"
+              className="btn btn-ghost mt-3 w-full py-2.5 text-sm"
             >
               <Upload size={15} />
-              {capaUploading ? "Enviando…" : "Enviar minha própria imagem"}
+              {capaUploading ? "Uploading…" : "Upload my own image"}
             </button>
             {capaError && <p className="mt-2 text-center text-xs text-danger">{capaError}</p>}
 
-            <p className="mt-6 text-sm font-medium text-muted">Poses por convidado</p>
+            <p className="label-caps mt-6">Shots per guest</p>
             <div className="mt-3 flex gap-2">
-              {POSES_OPCOES.map((n) => (
+              {SHOT_OPTIONS.map((n) => (
                 <button
                   key={n}
                   onClick={() => setEditPoses(n)}
-                  className={`flex-1 rounded-xl border py-3 font-semibold ${
+                  className={`flex-1 rounded-2xl border py-3 font-semibold transition-colors ${
                     editPoses === n
-                      ? "border-accent bg-accent text-accent-ink"
-                      : "border-ink/15 bg-bg text-ink"
+                      ? "border-accent bg-accent text-white"
+                      : "border-[var(--color-line)] bg-[rgba(247,240,237,0.04)] text-ink"
                   }`}
                 >
                   {n}
@@ -379,9 +399,9 @@ export default function HostDashboard({
             <button
               onClick={handleSaveEdit}
               disabled={saving || capaUploading}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-ink py-3 font-semibold text-bg disabled:opacity-50"
+              className="btn btn-primary mt-6 w-full"
             >
-              {saving ? "Salvando…" : "Salvar alterações"}
+              {saving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>

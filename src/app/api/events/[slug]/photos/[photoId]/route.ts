@@ -17,17 +17,17 @@ export async function DELETE(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Faça login como anfitrião." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in as the host." }, { status: 401 });
   }
 
   const event = await getEventForHost(slug, user.id);
   if (!event) {
-    return NextResponse.json({ error: "Não autorizado." }, { status: 403 });
+    return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   }
 
   const ok = await deletePhoto(event.id, photoId);
   if (!ok) {
-    return NextResponse.json({ error: "Foto não encontrada." }, { status: 404 });
+    return NextResponse.json({ error: "Photo not found." }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true });

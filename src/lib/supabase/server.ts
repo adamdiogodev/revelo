@@ -3,9 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 /**
- * Cliente Supabase para Server Components / Route Handlers — só usado
- * para ler a sessão de autenticação do anfitrião (auth.getUser()).
- * Dados de negócio continuam sempre via supabaseAdmin (service role).
+ * Supabase client for Server Components / Route Handlers — only used to read
+ * the host's auth session (auth.getUser()). Business data always goes through
+ * supabaseAdmin (service role).
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -22,7 +22,7 @@ export async function createClient() {
           try {
             cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
           } catch {
-            // chamado a partir de um Server Component — o middleware cuida de renovar a sessão
+            // called from a Server Component — the proxy takes care of refreshing the session
           }
         },
       },

@@ -7,17 +7,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const token = req.nextUrl.searchParams.get("token");
 
   if (!token) {
-    return NextResponse.json({ error: "Token ausente." }, { status: 400 });
+    return NextResponse.json({ error: "Token is missing." }, { status: 400 });
   }
 
   const event = await getEventRowBySlug(slug);
   if (!event) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   const guest = await getGuestByToken(event.id, token);
   if (!guest) {
-    return NextResponse.json({ error: "Convidado não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Guest not found." }, { status: 404 });
   }
 
   const challengesConcluidos = await getGuestCompletedChallengeIds(guest.id);

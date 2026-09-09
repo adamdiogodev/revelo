@@ -8,18 +8,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
   const { codigo } = body as { codigo?: string };
 
   const event = await getEventRowBySlug(slug);
   if (!event) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   if (!codigo || codigo !== event.codigo_acesso) {
-    return NextResponse.json({ error: "Código incorreto." }, { status: 403 });
+    return NextResponse.json({ error: "Wrong code." }, { status: 403 });
   }
 
   return NextResponse.json({ ok: true });

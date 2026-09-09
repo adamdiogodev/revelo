@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createEvent } from "@/lib/data/events";
 import { createClient } from "@/lib/supabase/server";
 import { CHALLENGE_PRESETS } from "@/lib/challenge-presets";
-import { FREE_TIER, getTierByMaxConvidados } from "@/lib/pricing";
+import { FREE_TIER, getTierByGuestLimit } from "@/lib/pricing";
 import { createCheckout, getActiveProvider } from "@/lib/payment-provider";
 import { createPendingPayment, setPaymentProviderRef } from "@/lib/data/payments";
 
@@ -15,14 +15,14 @@ export async function POST(req: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ error: "Faça login para criar um evento." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to create a party." }, { status: 401 });
   }
 
   let body: unknown;
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
   const {
@@ -44,28 +44,28 @@ export async function POST(req: NextRequest) {
   };
 
   if (!nome || typeof nome !== "string" || !nome.trim()) {
-    return NextResponse.json({ error: "Nome do evento é obrigatório." }, { status: 400 });
+    return NextResponse.json({ error: "The party needs a name." }, { status: 400 });
   }
 
   if (!revealAt || Number.isNaN(Date.parse(revealAt))) {
-    return NextResponse.json({ error: "Data/hora de revelação inválida." }, { status: 400 });
+    return NextResponse.json({ error: "That reveal date and time is not valid." }, { status: 400 });
   }
 
   const revealDate = new Date(revealAt);
   if (revealDate.getTime() <= Date.now()) {
     return NextResponse.json(
-      { error: "A revelação precisa ser em um horário no futuro." },
+      { error: "The reveal has to be at a time in the future." },
       { status: 400 }
     );
   }
 
   if (!posesPorConvidado || !VALID_POSES.includes(posesPorConvidado)) {
-    return NextResponse.json({ error: "Poses por convidado inválido." }, { status: 400 });
+    return NextResponse.json({ error: "That number of shots per guest is not valid." }, { status: 400 });
   }
 
-  const tier = getTierByMaxConvidados(maxConvidados ?? -1);
+  const tier = getTierByGuestLimit(maxConvidados ?? -1);
   if (!tier) {
-    return NextResponse.json({ error: "Plano de convidados inválido." }, { status: 400 });
+    return NextResponse.json({ error: "That guest plan is not valid." }, { status: 400 });
   }
 
   let finalCapaUrl: string | null = null;
@@ -87,9 +87,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // O evento sempre nasce no plano grátis — o limite de convidados só sobe
-    // depois que o pagamento é confirmado pelo webhook do gateway. Nunca
-    // confiamos no plano escolhido pelo cliente para liberar acesso na hora.
+    // A party is always born on the free plan — the guest limit only goes up
+    // once the payment is confirmed by the gateway webhook. We never trust the
+    // plan picked on the client to unlock access right away.
     const { slug, codigoAcesso, eventId } = await createEvent({
       hostUserId: user.id,
       nome: nome.trim().slice(0, 80),
@@ -129,6 +129,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ slug, codigoAcesso, checkoutUrl: checkout.checkoutUrl });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Falha ao criar o evento. Tente novamente." }, { status: 500 });
+    return NextResponse.json({ error: "We could not create the party. Please try again." }, { status: 500 });
   }
 }

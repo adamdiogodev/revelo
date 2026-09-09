@@ -4,15 +4,15 @@ import { createTierCheckoutSession } from "@/lib/stripe";
 import { createTierPreference } from "@/lib/mercadopago";
 
 /**
- * Gateway de pagamento ativo para NOVOS pagamentos. Troque com uma variável
- * de ambiente — nenhum outro código precisa mudar:
+ * Active payment gateway for NEW payments. Switch it with an environment
+ * variable — no other code needs to change:
  *
- *   PAYMENT_PROVIDER=stripe        (padrão)
+ *   PAYMENT_PROVIDER=stripe        (default)
  *   PAYMENT_PROVIDER=mercadopago
  *
- * Pagamentos já criados continuam usando o provedor com que nasceram
- * (guardado em payments.provider), então trocar essa variável não afeta
- * cobranças pendentes antigas — só as novas.
+ * Payments that already exist keep using the provider they were born on
+ * (stored in payments.provider), so flipping this variable does not affect
+ * old pending charges — only new ones.
  */
 export function getActiveProvider(): PaymentProvider {
   return process.env.PAYMENT_PROVIDER === "mercadopago" ? "mercadopago" : "stripe";
@@ -36,13 +36,13 @@ export type CheckoutResult = {
 export async function createCheckout(params: CheckoutParams): Promise<CheckoutResult> {
   if (params.provider === "stripe") {
     const session = await createTierCheckoutSession(params);
-    if (!session.url) throw new Error("Stripe não retornou uma URL de checkout.");
+    if (!session.url) throw new Error("Stripe did not return a checkout URL.");
     return { checkoutUrl: session.url, providerRef: session.id };
   }
 
   const preference = await createTierPreference(params);
   if (!preference.init_point || !preference.id) {
-    throw new Error("Mercado Pago não retornou uma preferência válida.");
+    throw new Error("Mercado Pago did not return a valid preference.");
   }
   return { checkoutUrl: preference.init_point, providerRef: preference.id };
 }

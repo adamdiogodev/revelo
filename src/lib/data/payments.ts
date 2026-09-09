@@ -40,7 +40,7 @@ export async function createPendingPayment(params: {
   return data as PaymentRow;
 }
 
-/** Guarda a referência do gateway (session id do Stripe ou preference id do Mercado Pago). */
+/** Stores the gateway reference (Stripe session id or Mercado Pago preference id). */
 export async function setPaymentProviderRef(
   paymentId: string,
   provider: PaymentProvider,

@@ -6,14 +6,14 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !serviceKey) {
   throw new Error(
-    "Faltam as variáveis NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (.env.local)."
+    "Missing NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (.env.local)."
   );
 }
 
-// Cliente com a service role key: só roda no servidor (Route Handlers / Server
-// Components), nunca é enviado ao navegador. Ele ignora RLS de propósito — toda
-// regra de negócio (limite de poses, hora da revelação) é validada aqui no
-// backend antes de qualquer leitura/escrita, nunca confiando no relógio do cliente.
+// Client with the service role key: server only (Route Handlers / Server
+// Components), never shipped to the browser. It bypasses RLS on purpose — every
+// business rule (shot limit, reveal time) is validated here on the backend
+// before any read/write, never trusting the client clock.
 export const supabaseAdmin = createClient(url, serviceKey, {
   auth: { persistSession: false },
 });

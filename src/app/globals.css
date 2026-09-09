@@ -1,28 +1,38 @@
 @import "tailwindcss";
 
 /*
-  Sempre escuro, de propósito — é uma câmera de festa, não um site.
-  Preto quente (não #000 puro) + branco quente + um único dourado fosco
-  como acento, em vez do amber/gradiente padrão do Tailwind.
+  Always dark, on purpose — this is a party camera, not a website.
+  Wine-black surfaces, warm off-white ink and a single crimson accent,
+  with an ambient burgundy glow behind everything.
 */
 :root {
-  --color-bg: #0b0b0a;
-  --color-bg-raised: #151412;
-  --color-ink: #f3efe6;
-  --color-muted: #9b9590;
-  --color-accent: #d3a75c;
-  --color-accent-ink: #17130c;
-  --color-danger: #d9695c;
+  --color-bg: #0a0507;
+  --color-bg-raised: #150e11;
+  --color-bg-elevated: #1f1519;
+  --color-ink: #f7f0ed;
+  --color-muted: #a1898c;
+  --color-accent: #e6394e;
+  --color-accent-soft: #ff8590;
+  --color-accent-ink: #1a0407;
+  --color-wine: #6d0f22;
+  --color-danger: #ff6b6b;
+  --color-line: rgba(247, 240, 237, 0.09);
+  --radius-card: 26px;
 }
 
 @theme inline {
   --color-bg: var(--color-bg);
   --color-bg-raised: var(--color-bg-raised);
+  --color-bg-elevated: var(--color-bg-elevated);
   --color-ink: var(--color-ink);
   --color-muted: var(--color-muted);
   --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
   --color-accent-ink: var(--color-accent-ink);
+  --color-wine: var(--color-wine);
   --color-danger: var(--color-danger);
+  --color-line: var(--color-line);
+  --radius-card: var(--radius-card);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-fraunces);
@@ -30,11 +40,157 @@
 
 html {
   color-scheme: dark;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-ink);
+}
+
+@layer components {
+  /* Ambient burgundy light. Fixed, behind every screen. */
+  .ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(90vw 60vh at 50% -10%, rgba(158, 20, 45, 0.55), transparent 70%),
+      radial-gradient(70vw 50vh at 110% 20%, rgba(109, 15, 34, 0.4), transparent 65%),
+      radial-gradient(80vw 60vh at -10% 90%, rgba(64, 10, 24, 0.5), transparent 70%);
+  }
+
+  .card {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-line);
+    background:
+      linear-gradient(180deg, rgba(247, 240, 237, 0.045), rgba(247, 240, 237, 0.012)),
+      rgba(12, 7, 9, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .card-flat {
+    border-radius: 20px;
+    border: 1px solid var(--color-line);
+    background: rgba(247, 240, 237, 0.04);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.9rem 1.25rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1;
+    transition:
+      transform 140ms ease,
+      opacity 140ms ease,
+      background-color 140ms ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: scale(0.975);
+  }
+  .btn:disabled {
+    opacity: 0.45;
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, #f24a5d, #cf2136);
+    color: #fff;
+    box-shadow:
+      0 14px 34px -16px rgba(230, 57, 78, 0.95),
+      inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+
+  .btn-ink {
+    background: var(--color-ink);
+    color: var(--color-bg);
+  }
+
+  .btn-ghost {
+    border: 1px solid var(--color-line);
+    background: rgba(247, 240, 237, 0.06);
+    color: var(--color-ink);
+  }
+
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--color-line);
+    background: rgba(247, 240, 237, 0.06);
+    color: var(--color-ink);
+    transition: background-color 140ms ease;
+  }
+
+  .field {
+    width: 100%;
+    border-radius: 16px;
+    border: 1px solid var(--color-line);
+    background: rgba(247, 240, 237, 0.04);
+    padding: 0.9rem 1rem;
+    color: var(--color-ink);
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease;
+  }
+  .field::placeholder {
+    color: var(--color-muted);
+  }
+  .field:focus {
+    outline: none;
+    border-color: rgba(230, 57, 78, 0.65);
+    box-shadow: 0 0 0 3px rgba(230, 57, 78, 0.16);
+  }
+
+  .label-caps {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-line);
+    background: rgba(10, 5, 7, 0.6);
+    padding: 0.3rem 0.7rem;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  .row-action {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: 18px;
+    background: rgba(247, 240, 237, 0.05);
+    padding: 0.9rem 1.1rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    transition: background-color 140ms ease;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes fadeOut {
@@ -72,6 +228,29 @@ body {
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes riseIn {
+  from {
+    transform: translateY(18px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.06);
   }
 }
 

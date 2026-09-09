@@ -20,8 +20,8 @@ function durationFor(slide: Slide) {
   return PHOTO_DURATION_MS;
 }
 
-function formatHora(iso: string) {
-  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function Slideshow({
@@ -94,7 +94,7 @@ export default function Slideshow({
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-black">
-      <audio ref={audioRef} src="/trilha.mp3" loop muted={muted} />
+      <audio ref={audioRef} src="/soundtrack.mp3" loop muted={muted} />
 
       {slide.kind === "title" && (
         <div key={index} className="relative h-full w-full animate-[fadeIn_600ms_ease-out]">
@@ -109,7 +109,7 @@ export default function Slideshow({
             <div className="h-full w-full bg-gradient-to-b from-bg-raised to-black" />
           )}
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/35 px-8 text-center">
-            <p className="text-xs uppercase tracking-[0.3em] text-accent">revelação</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-accent-soft">the reveal</p>
             <h1 className="mt-3 font-display text-4xl italic text-ink [text-shadow:0_2px_20px_rgba(0,0,0,0.6)]">
               {slide.nome}
             </h1>
@@ -123,7 +123,7 @@ export default function Slideshow({
           className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center text-ink animate-[fadeIn_500ms_ease-out]"
         >
           <div className="text-6xl">{slide.emoji}</div>
-          <p className="text-sm uppercase tracking-widest text-accent">Desafio</p>
+          <p className="text-sm uppercase tracking-widest text-accent-soft">Challenge</p>
           <h2 className="font-display text-3xl italic">{slide.titulo}</h2>
         </div>
       )}
@@ -133,12 +133,12 @@ export default function Slideshow({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={slide.photo.viewUrl}
-            alt={`Foto de ${slide.photo.guestNome}`}
+            alt={`Photo by ${slide.photo.guestNome}`}
             className="h-full w-full object-contain animate-[kenBurns_4000ms_ease-out_both]"
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <p className="font-display text-lg italic text-ink">{slide.photo.guestNome}</p>
-            <p className="text-sm text-ink/60">às {formatHora(slide.photo.takenAt)}</p>
+            <p className="text-sm text-ink/60">at {formatTime(slide.photo.takenAt)}</p>
           </div>
         </div>
       )}
@@ -147,24 +147,24 @@ export default function Slideshow({
         <div className="flex flex-1 gap-1">
           {slides.map((s, i) => (
             <div key={i} className="h-1 flex-1 overflow-hidden rounded-full bg-ink/20">
-              {i < index && <div className="h-full w-full bg-accent" />}
+              {i < index && <div className="h-full w-full bg-accent-soft" />}
               {i === index && !paused && (
                 <div
                   key={`${index}-${paused}`}
-                  className="h-full bg-accent"
+                  className="h-full bg-accent-soft"
                   style={{
                     animation: `slideProgress ${durationFor(s)}ms linear forwards`,
                   }}
                 />
               )}
-              {i === index && paused && <div className="h-full w-1/3 bg-accent" />}
+              {i === index && paused && <div className="h-full w-1/3 bg-accent-soft" />}
             </div>
           ))}
         </div>
-        <button onClick={toggleMute} className="text-ink" aria-label="Som">
+        <button onClick={toggleMute} className="text-ink" aria-label="Sound">
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
         </button>
-        <button onClick={onFinish} className="text-ink" aria-label="Fechar slideshow e ver grade">
+        <button onClick={onFinish} className="text-ink" aria-label="Close slideshow and see the grid">
           <X size={22} />
         </button>
       </div>
@@ -172,22 +172,22 @@ export default function Slideshow({
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         <button
           onClick={goPrev}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-ink"
-          aria-label="Voltar"
+          className="icon-btn h-11 w-11 bg-black/40"
+          aria-label="Previous"
         >
           <SkipBack size={18} />
         </button>
         <button
           onClick={() => setPaused((p) => !p)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-ink/20 text-ink backdrop-blur"
-          aria-label={paused ? "Play" : "Pausar"}
+          className="icon-btn h-14 w-14 bg-ink/15 backdrop-blur"
+          aria-label={paused ? "Play" : "Pause"}
         >
           {paused ? <Play size={22} /> : <Pause size={22} />}
         </button>
         <button
           onClick={goNext}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-ink"
-          aria-label="Avançar"
+          className="icon-btn h-11 w-11 bg-black/40"
+          aria-label="Next"
         >
           <SkipForward size={18} />
         </button>

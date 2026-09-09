@@ -6,9 +6,9 @@ export function useCountdown(targetIso: string) {
   const [msLeft, setMsLeft] = useState(() => new Date(targetIso).getTime() - Date.now());
 
   useEffect(() => {
-    // Recalcula na hora quando targetIso muda (ex.: de um placeholder para o
-    // valor real vindo da API) — sem isso, o valor ficava desatualizado por
-    // até 1s, o suficiente para uma tela "expirada" piscar por engano.
+    // Recompute immediately when targetIso changes (e.g. from a placeholder to
+    // the real value coming from the API) — without this the value stayed stale
+    // for up to 1s, enough to flash an "expired" screen by mistake.
     setMsLeft(new Date(targetIso).getTime() - Date.now());
     const id = setInterval(() => {
       setMsLeft(new Date(targetIso).getTime() - Date.now());

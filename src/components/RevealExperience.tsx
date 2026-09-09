@@ -10,13 +10,7 @@ import type { RevealPayload } from "@/lib/types";
 
 type Stage = "loading" | "intro" | "slideshow" | "grid" | "expirada" | "erro";
 
-export default function RevealExperience({
-  slug,
-  isHost,
-}: {
-  slug: string;
-  isHost?: boolean;
-}) {
+export default function RevealExperience({ slug, isHost }: { slug: string; isHost?: boolean }) {
   const [payload, setPayload] = useState<RevealPayload | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
 
@@ -38,8 +32,8 @@ export default function RevealExperience({
   }, [stage]);
 
   const expiresAt = payload?.expiresAt;
-  // Enquanto o payload real não chega, usa uma data bem distante como alvo
-  // (nunca "agora") para não disparar a tela de expirada por engano.
+  // Until the real payload arrives, aim at a far-future date (never "now") so we
+  // do not flash the expired screen by mistake.
   const expireMs = useCountdown(expiresAt || "2999-01-01T00:00:00.000Z");
 
   useEffect(() => {
@@ -48,29 +42,29 @@ export default function RevealExperience({
     }
   }, [expireMs, expiresAt, stage]);
 
-  // Importante: precisa ser estável entre renders. O RevealExperience
-  // re-renderiza a cada segundo (por causa do useCountdown), e se essa
-  // função fosse recriada a cada vez, o efeito de auto-avanço do
-  // Slideshow reiniciava o timer sem parar e a foto nunca trocava.
+  // Important: this has to stay stable across renders. RevealExperience
+  // re-renders every second (because of useCountdown), and if this function were
+  // recreated each time, the slideshow's auto-advance effect would keep
+  // restarting its timer and the photo would never change.
   const handleSlideshowFinish = useCallback(() => setStage("grid"), []);
 
   if (stage === "loading") {
-    return <FullscreenMessage>carregando…</FullscreenMessage>;
+    return <FullscreenMessage>developing…</FullscreenMessage>;
   }
 
   if (stage === "erro") {
     return (
-      <FullscreenMessage icon={<AlertTriangle size={26} />}>
-        Não deu para carregar a revelação. Recarregue a página.
+      <FullscreenMessage icon={<AlertTriangle size={24} />}>
+        <p className="text-muted">We could not load the reveal. Please refresh the page.</p>
       </FullscreenMessage>
     );
   }
 
   if (stage === "expirada") {
     return (
-      <FullscreenMessage icon={<Film size={26} />}>
-        <p className="font-display text-xl italic text-ink">Esse rolê já virou lembrança.</p>
-        <p className="mt-2 text-muted">As fotos foram apagadas.</p>
+      <FullscreenMessage icon={<Film size={24} />}>
+        <p className="font-display text-xl italic text-ink">This one is a memory now.</p>
+        <p className="mt-2 text-muted">The photos have been deleted.</p>
       </FullscreenMessage>
     );
   }
@@ -79,12 +73,16 @@ export default function RevealExperience({
 
   if (stage === "intro") {
     return (
-      <div className="relative flex h-dvh flex-col items-center justify-center gap-5 text-ink">
+      <div className="relative flex h-dvh flex-col items-center justify-center gap-6">
+        <div className="ambient" />
         <CoverBackground url={payload.capaUrl} />
-        <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-bg-raised text-accent animate-[spin-slow_2.5s_linear_infinite]">
-          <Film size={26} />
+        <div className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full border border-[var(--color-line)] bg-[rgba(247,240,237,0.06)] text-accent-soft animate-[spin-slow_2.5s_linear_infinite]">
+          <Film size={24} />
         </div>
-        <p className="relative z-10 font-display text-2xl italic">Revelando o filme…</p>
+        <div className="relative z-10 text-center">
+          <p className="label-caps">now developing</p>
+          <p className="mt-2 font-display text-3xl italic text-ink">{payload.nome}</p>
+        </div>
       </div>
     );
   }
@@ -103,26 +101,34 @@ export default function RevealExperience({
 
       {stage === "grid" && (
         <>
+          <div className="ambient" />
           <CoverBackground url={payload.capaUrl} />
           <div className="relative z-10">
-            <div className="flex flex-wrap items-center justify-center gap-3 py-4">
-              <button
-                onClick={() => setStage("slideshow")}
-                className="flex items-center gap-2 rounded-full bg-bg-raised px-5 py-2.5 text-sm font-semibold text-ink"
-              >
-                <Play size={16} />
-                Ver slideshow
-              </button>
-              {isHost && (
-                <a
-                  href={`/api/events/${slug}/zip`}
-                  className="flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-bg"
+            <div className="mx-auto max-w-4xl px-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
+              <div className="text-center">
+                <p className="label-caps">revealed</p>
+                <h1 className="mt-2 font-display text-[2rem] italic leading-tight text-ink">
+                  {payload.nome}
+                </h1>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => setStage("slideshow")}
+                  className="btn btn-ghost px-5 py-2.5 text-sm"
                 >
-                  <Download size={16} />
-                  Baixar álbum completo (.zip)
-                </a>
-              )}
+                  <Play size={16} />
+                  Play slideshow
+                </button>
+                {isHost && (
+                  <a href={`/api/events/${slug}/zip`} className="btn btn-primary px-5 py-2.5 text-sm">
+                    <Download size={16} />
+                    Download album (.zip)
+                  </a>
+                )}
+              </div>
             </div>
+
             <PhotoGrid
               photos={payload.allPhotos}
               guestNames={payload.guestNames}
@@ -140,13 +146,14 @@ export default function RevealExperience({
 
 function FullscreenMessage({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-2 bg-bg px-6 text-center text-ink">
+    <div className="relative flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
+      <div className="ambient" />
       {icon && (
-        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-raised text-ink/70">
+        <div className="relative z-10 mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[rgba(247,240,237,0.06)] text-muted">
           {icon}
         </div>
       )}
-      {children}
+      <div className="relative z-10">{children}</div>
     </div>
   );
 }

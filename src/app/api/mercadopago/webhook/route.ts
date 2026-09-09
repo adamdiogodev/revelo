@@ -21,23 +21,22 @@ export async function POST(req: NextRequest) {
       });
     } catch (err) {
       if (err instanceof InvalidWebhookSignatureError) {
-        console.error("Assinatura do webhook Mercado Pago inválida:", err.reason);
-        return NextResponse.json({ error: "Assinatura inválida." }, { status: 400 });
+        console.error("Invalid Mercado Pago webhook signature:", err.reason);
+        return NextResponse.json({ error: "Invalid signature." }, { status: 400 });
       }
       throw err;
     }
   } else {
-    console.warn("MP_WEBHOOK_SECRET não configurado — pulando validação de assinatura.");
+    console.warn("MP_WEBHOOK_SECRET is not configured — skipping signature validation.");
   }
 
-  // Sempre confirma lendo o pagamento na API do Mercado Pago (nunca confia
-  // só no corpo da notificação) antes de liberar qualquer coisa.
+  // Always confirm by reading the payment from the Mercado Pago API (never trust
+  // the notification body alone) before unlocking anything.
   //
-  // Importante: sempre respondemos 200 pro Mercado Pago aqui, mesmo quando o
-  // pagamento não é reconhecido (ex.: o teste de webhook do próprio painel
-  // manda um data.id fictício) — um erro HTTP faria o Mercado Pago achar que
-  // o endpoint está quebrado e parar de reentregar notificações de verdade.
-  // Qualquer problema real fica só no log do servidor.
+  // Important: we always answer 200 to Mercado Pago here, even when the payment
+  // is not recognized (their dashboard webhook test sends a fake data.id, for
+  // example) — an HTTP error would make Mercado Pago think the endpoint is broken
+  // and stop redelivering real notifications. Real problems stay in the logs.
   if (type === "payment" && dataId) {
     try {
       const mpPayment = await getPayment(dataId);

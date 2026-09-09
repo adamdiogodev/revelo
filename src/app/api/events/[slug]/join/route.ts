@@ -9,28 +9,28 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
   }
 
   const { nome, codigo } = body as { nome?: string; codigo?: string };
   if (!nome || typeof nome !== "string" || !nome.trim()) {
-    return NextResponse.json({ error: "Diz aí seu nome!" }, { status: 400 });
+    return NextResponse.json({ error: "Tell us your name!" }, { status: 400 });
   }
 
   const event = await getEventRowBySlug(slug);
   if (!event) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
-  // Nunca confia só na tela de código do cliente — valida de novo aqui,
-  // no momento real de virar convidado.
+  // Never trust the client-side code screen alone — validate again here, at the
+  // actual moment someone becomes a guest.
   if (!codigo || codigo !== event.codigo_acesso) {
-    return NextResponse.json({ error: "Código de entrada incorreto." }, { status: 403 });
+    return NextResponse.json({ error: "Wrong entry code." }, { status: 403 });
   }
 
   if (Date.now() >= new Date(event.reveal_at).getTime()) {
     return NextResponse.json(
-      { error: "A revelação já começou, não dá mais para entrar como convidado." },
+      { error: "The reveal already started — you cannot join as a guest anymore." },
       { status: 403 }
     );
   }
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const totalConvidados = await countGuestsForEvent(event.id);
   if (totalConvidados >= event.max_convidados) {
     return NextResponse.json(
-      { error: "Esse evento já atingiu o número máximo de convidados." },
+      { error: "This party has already hit its maximum number of guests." },
       { status: 403 }
     );
   }

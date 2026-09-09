@@ -3,7 +3,7 @@ import { supabaseAdmin, PHOTOS_BUCKET } from "@/lib/supabase-admin";
 import { computeFase, getEventRowBySlug } from "@/lib/data/events";
 import type { RevealChapter, RevealPayload, RevealPhoto } from "@/lib/types";
 
-const SIGNED_URL_TTL_SECONDS = 6 * 60 * 60; // 6h — suficiente para uma sessão de slideshow
+const SIGNED_URL_TTL_SECONDS = 6 * 60 * 60; // 6h — long enough for one slideshow session
 
 type PhotoJoinRow = {
   id: string;
@@ -24,8 +24,8 @@ export async function getRevealPayload(slug: string): Promise<RevealPayload | nu
   if (!event) return null;
 
   const now = new Date();
-  // Nunca confiar em relógio de cliente: a fase (e portanto se as fotos
-  // podem ser servidas) é sempre recalculada aqui a partir do timestamp do banco.
+  // Never trust a client clock: the phase (and therefore whether photos may be
+  // served) is always recomputed here from the database timestamp.
   const fase = computeFase(event, now);
 
   const base = {

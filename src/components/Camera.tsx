@@ -114,7 +114,7 @@ export default function Camera({
       if (caps?.zoom) setZoomLevels({ min: caps.zoom.min, max: caps.zoom.max });
     } catch {
       setCameraError(
-        "Não consegui acessar sua câmera. Verifique a permissão do navegador e tente de novo."
+        "We could not reach your camera. Check your browser permission and try again."
       );
     }
   }, []);
@@ -135,7 +135,7 @@ export default function Camera({
       await track.applyConstraints({ advanced: [{ torch: next } as MediaTrackConstraintSet] });
       setTorchOn(next);
     } catch {
-      // dispositivo recusou o pedido de torch — segue sem flash
+      // the device refused the torch request — carry on without flash
     }
   }
 
@@ -146,7 +146,7 @@ export default function Camera({
       await track.applyConstraints({ advanced: [{ zoom: level } as MediaTrackConstraintSet] });
       setZoom(level);
     } catch {
-      // zoom não suportado nesta constraint específica — ignora
+      // zoom is not supported by this specific constraint — ignore it
     }
   }
 
@@ -156,7 +156,7 @@ export default function Camera({
 
     while (queueRef.current.length > 0 && !stoppedRef.current) {
       const item = queueRef.current[0];
-      setStatusMsg("sincronizando…");
+      setStatusMsg("syncing…");
 
       const form = new FormData();
       form.append("guestToken", guestToken);
@@ -189,11 +189,11 @@ export default function Camera({
           const doneId = item.challengeId;
           setCompletedIds((prev) => (prev.has(doneId) ? prev : new Set(prev).add(doneId)));
         }
-        setStatusMsg(queueRef.current.length > 0 ? "sincronizando…" : null);
+        setStatusMsg(queueRef.current.length > 0 ? "syncing…" : null);
       } else if (result.reason === "network") {
         item.attempts += 1;
         const delay = Math.min(1000 * 2 ** Math.min(item.attempts, 5), 15000);
-        setStatusMsg("sem sinal, tentando de novo…");
+        setStatusMsg("no signal, retrying…");
         await new Promise((r) => setTimeout(r, delay));
       } else if (result.reason === "sem_poses") {
         queueRef.current.shift();
@@ -276,8 +276,8 @@ export default function Camera({
         style={{ filter: activeFilter.cssFilter }}
       />
 
-      {/* vinheta + grão ao vivo, no mesmo tom do filtro escolhido — o que se vê aqui é bem
-          próximo do que vira a foto final, só sem "queimar" o timestamp ainda */}
+      {/* live vignette + grain in the same tone as the chosen filter — what you see here is
+          very close to the final photo, just without the timestamp burned in yet */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -321,10 +321,10 @@ export default function Camera({
           {eventNome}
         </p>
         <p className="font-mono text-[11px] tracking-wide text-ink/60">
-          revelação em {formatCountdown(msAteRevelacao)}
+          reveals in {formatCountdown(msAteRevelacao)}
         </p>
         {statusMsg && (
-          <div className="mt-2 rounded-full bg-black/40 px-3 py-1 text-xs text-ink/80">{statusMsg}</div>
+          <div className="mt-2 rounded-full border border-white/10 bg-black/45 px-3 py-1 text-xs text-ink/80 backdrop-blur">{statusMsg}</div>
         )}
 
         <div className="mt-3 flex gap-2 overflow-x-auto px-2 [scrollbar-width:none]">
@@ -334,7 +334,7 @@ export default function Camera({
               onClick={() => setFilterId(f.id)}
               className={`shrink-0 rounded-full border px-3 py-1 text-xs font-medium backdrop-blur ${
                 filterId === f.id
-                  ? "border-accent bg-accent text-accent-ink"
+                  ? "border-accent bg-accent text-white"
                   : "border-ink/20 bg-black/40 text-ink"
               }`}
             >
@@ -345,25 +345,25 @@ export default function Camera({
       </div>
 
       {cameraError && (
-        <div className="absolute inset-x-4 top-1/3 rounded-2xl bg-black/80 p-4 text-center text-ink">
+        <div className="absolute inset-x-4 top-1/3 z-40 rounded-2xl border border-white/10 bg-black/85 p-5 text-center text-ink backdrop-blur">
           <p className="mb-3 text-sm">{cameraError}</p>
           <button
             onClick={() => startCamera(facingMode)}
-            className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-bg"
+            className="btn btn-primary mx-auto px-5 py-2.5 text-sm"
           >
-            Tentar de novo
+            Try again
           </button>
         </div>
       )}
 
-      {/* controles secundários: flash, zoom, trocar câmera */}
+      {/* secondary controls: flash, zoom, switch camera */}
       <div className="absolute inset-x-0 bottom-[11.5rem] flex items-center justify-center gap-3">
         {torchSupported && (
           <button
             onClick={toggleTorch}
             aria-label="Flash"
             className={`flex h-9 w-9 items-center justify-center rounded-full backdrop-blur ${
-              torchOn ? "bg-accent text-accent-ink" : "bg-black/40 text-ink"
+              torchOn ? "bg-accent text-white" : "bg-black/40 text-ink"
             }`}
           >
             {torchOn ? <Zap size={16} /> : <ZapOff size={16} />}
@@ -377,7 +377,7 @@ export default function Camera({
                 key={level}
                 onClick={() => applyZoom(level)}
                 className={`px-3 py-1.5 text-xs font-semibold ${
-                  Math.round(zoom) === level ? "bg-accent text-accent-ink" : "text-ink"
+                  Math.round(zoom) === level ? "bg-accent text-white" : "text-ink"
                 }`}
               >
                 {level}x
@@ -388,7 +388,7 @@ export default function Camera({
 
         <button
           onClick={() => setFacingMode((m) => (m === "environment" ? "user" : "environment"))}
-          aria-label="Trocar câmera"
+          aria-label="Switch camera"
           className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-ink backdrop-blur"
         >
           <RefreshCw size={16} />
@@ -401,11 +401,11 @@ export default function Camera({
             onClick={() => setSelectedChallengeId(null)}
             className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium backdrop-blur ${
               selectedChallengeId === null
-                ? "border-accent bg-accent text-accent-ink"
+                ? "border-accent bg-accent text-white"
                 : "border-ink/20 bg-black/40 text-ink"
             }`}
           >
-            Livre
+            Open
           </button>
           {challenges.map((c) => {
             const isSelected = selectedChallengeId === c.id;
@@ -416,7 +416,7 @@ export default function Camera({
                 onClick={() => setSelectedChallengeId(isSelected ? null : c.id)}
                 className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium backdrop-blur ${
                   isSelected
-                    ? "border-accent bg-accent text-accent-ink"
+                    ? "border-accent bg-accent text-white"
                     : "border-ink/20 bg-black/40 text-ink"
                 }`}
               >
@@ -429,7 +429,7 @@ export default function Camera({
       )}
 
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-10 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6">
-        <div className="flex h-14 min-w-14 items-center justify-center gap-1.5 rounded-full bg-black/40 px-3 text-ink backdrop-blur">
+        <div className="flex h-14 min-w-14 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-black/45 px-3.5 text-ink backdrop-blur">
           <Film size={18} className="text-ink/60" />
           <span className="font-display text-3xl italic tabular-nums leading-none">
             {posesRestantes}
@@ -439,13 +439,13 @@ export default function Camera({
         <button
           onClick={handleShutter}
           disabled={isCapturing || posesRestantes <= 0}
-          aria-label="Tirar foto"
-          className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-ink bg-ink/10 backdrop-blur transition-transform active:scale-95 disabled:opacity-40"
+          aria-label="Take photo"
+          className="flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-ink/85 bg-ink/10 shadow-[0_0_36px_-6px_rgba(230,57,78,0.75)] backdrop-blur transition-transform active:scale-95 disabled:opacity-40"
         >
-          <span className="h-16 w-16 rounded-full bg-ink" />
+          <span className="h-16 w-16 rounded-full bg-ink transition-transform" />
         </button>
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-ink backdrop-blur">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-black/45 text-ink backdrop-blur">
           {pendingCount > 0 ? (
             <div className="flex flex-col items-center">
               <UploadCloud size={14} />

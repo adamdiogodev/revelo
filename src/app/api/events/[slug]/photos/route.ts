@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   try {
     form = await req.formData();
   } catch {
-    return NextResponse.json({ error: "Upload inválido." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid upload." }, { status: 400 });
   }
 
   const guestToken = form.get("guestToken");
@@ -20,32 +20,32 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
   const file = form.get("file");
 
   if (typeof guestToken !== "string" || !guestToken) {
-    return NextResponse.json({ error: "Token de convidado ausente." }, { status: 400 });
+    return NextResponse.json({ error: "Guest token is missing." }, { status: 400 });
   }
   if (!(file instanceof Blob)) {
-    return NextResponse.json({ error: "Arquivo de foto ausente." }, { status: 400 });
+    return NextResponse.json({ error: "Photo file is missing." }, { status: 400 });
   }
 
   const event = await getEventRowBySlug(slug);
   if (!event) {
-    return NextResponse.json({ error: "Evento não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Event not found." }, { status: 404 });
   }
 
   if (Date.now() >= new Date(event.reveal_at).getTime()) {
     return NextResponse.json(
-      { error: "revelacao_iniciada", message: "A revelação já começou, câmera encerrada." },
+      { error: "revelacao_iniciada", message: "The reveal already started — the camera is closed." },
       { status: 403 }
     );
   }
 
   const guest = await getGuestByToken(event.id, guestToken);
   if (!guest) {
-    return NextResponse.json({ error: "Convidado não encontrado." }, { status: 404 });
+    return NextResponse.json({ error: "Guest not found." }, { status: 404 });
   }
 
   if (guest.poses_usadas >= event.poses_por_convidado) {
     return NextResponse.json(
-      { error: "sem_poses", message: "Suas poses já acabaram!" },
+      { error: "sem_poses", message: "You are out of shots!" },
       { status: 409 }
     );
   }
@@ -66,10 +66,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     const status = result.reason === "sem_poses" || result.reason === "revelacao_iniciada" ? 409 : 500;
     const message =
       result.reason === "sem_poses"
-        ? "Suas poses já acabaram!"
+        ? "You are out of shots!"
         : result.reason === "revelacao_iniciada"
-          ? "A revelação já começou, câmera encerrada."
-          : "Falha ao enviar a foto. Tente novamente.";
+          ? "The reveal already started — the camera is closed."
+          : "We could not upload that photo. Please try again.";
     return NextResponse.json({ error: result.reason, message }, { status });
   }
 

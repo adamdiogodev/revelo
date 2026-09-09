@@ -7,7 +7,7 @@ type NavigatorWithWakeLock = Navigator & {
   wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinel> };
 };
 
-/** Mantém a tela acesa durante o slideshow (best-effort; ignora se o navegador não suportar). */
+/** Keeps the screen awake during the slideshow (best-effort; ignored if unsupported). */
 export function useWakeLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -24,7 +24,7 @@ export function useWakeLock(active: boolean) {
           else s.release().catch(() => {});
         }
       } catch {
-        // sem suporte ou permissão negada — segue sem wake lock
+        // unsupported or permission denied — carry on without a wake lock
       }
     }
 

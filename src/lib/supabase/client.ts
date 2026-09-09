@@ -1,10 +1,9 @@
 import { createBrowserClient } from "@supabase/ssr";
 
 /**
- * Cliente Supabase para o navegador — usa só a anon key, usada
- * exclusivamente para autenticação (login/cadastro do anfitrião).
- * Nenhum dado de evento/foto/convidado é lido por aqui: isso continua
- * indo sempre pelo backend com a service role key.
+ * Supabase client for the browser — uses only the anon key, exclusively for
+ * authentication (host sign-in/sign-up). No event/photo/guest data is read
+ * here: that always goes through the backend with the service role key.
  */
 export function createClient() {
   return createBrowserClient(
