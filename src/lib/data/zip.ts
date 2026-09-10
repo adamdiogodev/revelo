@@ -14,7 +14,7 @@ function firstOf<T>(v: T | T[] | null): T | null {
 }
 
 function sanitizeFilename(name: string) {
-  return name.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 40) || "convidado";
+  return name.replace(/[^a-zA-Z0-9-_]/g, "_").slice(0, 40) || "guest";
 }
 
 export async function buildEventZip(eventId: string): Promise<Buffer> {
@@ -38,7 +38,7 @@ export async function buildEventZip(eventId: string): Promise<Buffer> {
 
       if (downloadError || !data) return;
 
-      const guestNome = sanitizeFilename(firstOf(row.guests)?.nome || "convidado");
+      const guestNome = sanitizeFilename(firstOf(row.guests)?.nome || "guest");
       let filename = `${String(i + 1).padStart(3, "0")}_${guestNome}.jpg`;
       let suffix = 1;
       while (usedNames.has(filename)) {

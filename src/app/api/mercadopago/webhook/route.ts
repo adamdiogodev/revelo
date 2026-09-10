@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
         }
       }
     } catch (err) {
-      console.error("Erro processando webhook do Mercado Pago (data.id:", dataId, "):", err);
+      console.error("Error processing Mercado Pago webhook (data.id:", dataId, "):", err);
     }
   }
 

@@ -61,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ slu
     ]);
 
     if (photoBuffers.length === 0) {
-      return NextResponse.json({ error: "Nenhuma das fotos selecionadas foi encontrada." }, { status: 400 });
+      return NextResponse.json({ error: "None of the selected photos were found." }, { status: 400 });
     }
 
     const video = await generateHighlightVideo({

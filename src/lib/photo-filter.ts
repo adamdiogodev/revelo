@@ -116,7 +116,7 @@ export function captureFilteredJpeg(
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
-      (blob) => (blob ? resolve(blob) : reject(new Error("Falha ao gerar imagem"))),
+      (blob) => (blob ? resolve(blob) : reject(new Error("Could not generate the image"))),
       "image/jpeg",
       JPEG_QUALITY
     );

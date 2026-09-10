@@ -36,7 +36,7 @@ export async function createPendingPayment(params: {
     .select("*")
     .single();
 
-  if (error || !data) throw new Error(error?.message || "Falha ao registrar pagamento.");
+  if (error || !data) throw new Error(error?.message || "Could not record the payment.");
   return data as PaymentRow;
 }
 

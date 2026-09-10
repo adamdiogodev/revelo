@@ -76,7 +76,7 @@ export async function getRevealPayload(slug: string): Promise<RevealPayload | nu
   }
 
   const revealPhotos: RevealPhoto[] = rows.map((r, i) => {
-    const guestNome = firstOf(r.guests)?.nome || "Convidado";
+    const guestNome = firstOf(r.guests)?.nome || "Guest";
     const challenge = firstOf(r.challenges);
     return {
       id: r.id,

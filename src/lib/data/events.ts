@@ -65,7 +65,7 @@ export async function createEvent(
     .single();
 
   if (error || !event) {
-    throw new Error(error?.message || "Falha ao criar evento.");
+    throw new Error(error?.message || "Could not create the event.");
   }
 
   if (input.modoDesafios && input.challenges.length > 0) {
